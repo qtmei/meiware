@@ -263,13 +263,13 @@ function Meiware.Aimbot(cmd)
 	if Meiware.IsValidTarget(Meiware.target) and Meiware.CanFire() and !_G.input.IsMouseDown(_G.MOUSE_LEFT) and (Meiware.aim.ignorefov[2] or (_G.input.IsMouseDown(Meiware.aimbot_key) and Meiware.target_fov <= Meiware.aimbot_fov)) then
 		cmd:SetViewAngles(Meiware.target_ang)
 
-		if Meiware.aim.aimbot[2] then
+		if Meiware.aim.triggerbot[2] then
 			Meiware.Attack(cmd, true, "aimbot")
 		end
 	else
 		cmd:SetViewAngles(Meiware.false_ang)
 
-		if Meiware.aim.aimbot[2] then
+		if Meiware.aim.triggerbot[2] then
 			Meiware.Attack(cmd, false, "aimbot")
 		end
 	end
