@@ -870,7 +870,7 @@ function Meiware.Move()
 end
 
 function Meiware.Initiate()
-	_G.print("[Meiware] loading...")
+	_G.print("[Meiware] initiating...")
 
 	_G.hook.Add("CreateMove", "MeiwareCreateMove", Meiware.CreateMove)
 	_G.hook.Add("CalcView", "MeiwareCalcView", Meiware.CalcView)
@@ -880,7 +880,7 @@ function Meiware.Initiate()
 	_G.hook.Add("Think", "MeiwareThink", Meiware.Think)
 	_G.hook.Add("Move", "MeiwareMove", Meiware.Move)
 
-	_G.print("[Meiware] loaded.")
+	_G.print("[Meiware] initiated.")
 end
 
 function Meiware.Terminate()
