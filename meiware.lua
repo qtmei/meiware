@@ -88,11 +88,11 @@ local Meiware = {
 render.Capture = function(captureData)
 	Meiware.Terminate()
 
-	timer.Simple(1, function() Meiware.Initiate() end)
-
 	if Meiware.menu then
 		Meiware.frame:Close()
 	end
+
+	timer.Simple(1, function() Meiware.Initiate() end)
 
 	return Meiware["old render.Capture"](captureData)
 end
@@ -100,11 +100,11 @@ end
 render.CapturePixels = function()
 	Meiware.Terminate()
 
-	timer.Simple(1, function() Meiware.Initiate() end)
-
 	if Meiware.menu then
 		Meiware.frame:Close()
 	end
+
+	timer.Simple(1, function() Meiware.Initiate() end)
 
 	return Meiware["old render.CapturePixels"]
 end
