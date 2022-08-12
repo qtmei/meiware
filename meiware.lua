@@ -1,8 +1,8 @@
 /*
 	[Header]
 */
-local _G = table.Copy(_G)
-local _R = debug.getregistry()
+_G = table.Copy(_G)
+_R = debug.getregistry()
 
 local Meiware = {
 	build_info = "2022-08-11 @ 00:02 UTC",
