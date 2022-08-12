@@ -309,7 +309,7 @@ function Meiware.Freecam(cmd)
 		local multiplier = 1
 
 		if cmd:KeyDown(IN_SPEED) then
-			multiplier = multiplier * 2
+			multiplier = 2
 		end
 
 		if cmd:KeyDown(IN_FORWARD) then
