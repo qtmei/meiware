@@ -1,15 +1,18 @@
 /*
 	[Header]
 */
+local _G = table.Copy(_G)
+local _R = debug.getregistry()
+
 local Meiware = {
-	build_info = "2022-08-10 @ 00:26 UTC",
+	build_info = "2022-08-11 @ 00:02 UTC",
 
 	//////////
 	//CONFIG//
 	//////////
-	color = _G.Color(0, 255, 0),
-	menu_key = _G.KEY_INSERT,
-	aimbot_key = _G.MOUSE_5,
+	color = Color(0, 255, 0),
+	menu_key = KEY_INSERT,
+	aimbot_key = MOUSE_5,
 	aimbot_fov = 6,
 	fov = 100,
 	freecamspeed = 4,
@@ -42,34 +45,34 @@ local Meiware = {
 
 	whitelist = {},
 	entitylist = {},
-	hitboxlist = {"Head"},
+	hitboxlist = {"head"},
 
 	hitboxes = {
-		["Head"] = 0,	
-		["L Upperarm"] = 1,
-		["L Forearm"] = 2,
-		["L Hand"] = 3,
-		["R Upperarm"] = 4,
-		["R Forearm"] = 5,
-		["R Hand"] = 6,
-		["L Thigh"] = 7,
-		["L Calf"] = 8,
-		["L Foot"] = 9,
-		["L Toe"] = 10,
-		["R Thigh"] = 11,
-		["R Calf"] = 12,
-		["R Foot"] = 13,
-		["R Toe"] = 14,
-		["Pelvis"] = 15,
-		["Spine"] = 16
+		["head"] = 0,	
+		["L arm"] = 1,
+		["L forearm"] = 2,
+		["L hand"] = 3,
+		["R arm"] = 4,
+		["R forearm"] = 5,
+		["R hand"] = 6,
+		["L thigh"] = 7,
+		["L calf"] = 8,
+		["L foot"] = 9,
+		["L toe"] = 10,
+		["R thigh"] = 11,
+		["R calf"] = 12,
+		["R foot"] = 13,
+		["R toe"] = 14,
+		["pelvis"] = 15,
+		["spine"] = 16
 	},
 
-	false_ang = _G.EyeAngles(),
-	false_vec = _G.EyePos(),
+	false_ang = EyeAngles(),
+	false_vec = EyePos(),
 
 	target = nil,
-	target_vec = _G.Vector(0, 0, 0),
-	target_ang = _G.Angle(0, 0, 0),
+	target_vec = Vector(0, 0, 0),
+	target_ang = Angle(0, 0, 0),
 	target_fov = 360,
 
 	firing = false,
@@ -78,18 +81,14 @@ local Meiware = {
 
 	curtime = 0,
 
-	["old render.Capture"] = _G.render.Capture,
-	["old render.CapturePixels"] = _G.render.CapturePixels
+	["old render.Capture"] = render.Capture,
+	["old render.CapturePixels"] = render.CapturePixels
 }
 
-/*_G.render.Capture = function(captureData)
-	_G.hook.Remove("CreateMove", "MeiwareCreateMove")
-	_G.hook.Remove("CalcView", "MeiwareCalcView")
-	_G.hook.Remove("CalcViewModelView", "MeiwareCalcViewModelView")
-	_G.hook.Remove("PostDrawOpaqueRenderables", "MeiwarePostDrawOpaqueRenderables")
-	_G.hook.Remove("HUDPaint", "MeiwareHUDPaint")
-	_G.hook.Remove("Think", "MeiwareThink")
-	_G.hook.Remove("Move", "MeiwareMove")
+render.Capture = function(captureData)
+	Meiware.Terminate()
+
+	timer.Simple(1, function() Meiware.Initiate() end)
 
 	if Meiware.menu then
 		Meiware.frame:Close()
@@ -98,24 +97,17 @@ local Meiware = {
 	return Meiware["old render.Capture"](captureData)
 end
 
-_G.render.CapturePixels = function()
-	_G.hook.Remove("CreateMove", "MeiwareCreateMove")
-	_G.hook.Remove("CalcView", "MeiwareCalcView")
-	_G.hook.Remove("CalcViewModelView", "MeiwareCalcViewModelView")
-	_G.hook.Remove("PostDrawOpaqueRenderables", "MeiwarePostDrawOpaqueRenderables")
-	_G.hook.Remove("HUDPaint", "MeiwareHUDPaint")
-	_G.hook.Remove("Think", "MeiwareThink")
-	_G.hook.Remove("Move", "MeiwareMove")
+render.CapturePixels = function()
+	Meiware.Terminate()
+
+	timer.Simple(1, function() Meiware.Initiate() end)
 
 	if Meiware.menu then
 		Meiware.frame:Close()
 	end
 
 	return Meiware["old render.CapturePixels"]
-end*/
-
-local _G = _G.table.Copy(_G)
-local _R = _G.debug.getregistry()
+end
 
 function Meiware.Normalize(ang)
 	while ang.p > 180 do
@@ -152,34 +144,34 @@ function Meiware.Clamp(ang)
 end
 
 function Meiware.IsValidTarget(ent)
-	if !_G.IsValid(ent) then return false end
-	if ent:IsEffectActive(_G.EF_NODRAW) or ent:GetRenderMode() == _G.RENDERMODE_NONE or ent:GetRenderMode() == _G.RENDERMODE_TRANSCOLOR or ent:GetColor().a == 0 then return false end
+	if !IsValid(ent) then return false end
+	if ent:IsEffectActive(EF_NODRAW) or ent:GetRenderMode() == RENDERMODE_NONE or ent:GetRenderMode() == RENDERMODE_TRANSCOLOR or ent:GetColor().a == 0 then return false end
 	if Meiware.aim.ignorenpc[2] and ent:IsNPC() then return true end
 
-	return ent:IsPlayer() and ent != _G.LocalPlayer() and ent:Alive() and ent:Team() != _G.TEAM_SPECTATOR and !ent:IsDormant() and !_G.table.HasValue(Meiware.whitelist, ent:SteamID()) and (Meiware.aim.ignoreteam[2] or ent:Team() != _G.LocalPlayer():Team())
+	return ent:IsPlayer() and ent != LocalPlayer() and ent:Alive() and ent:Team() != TEAM_SPECTATOR and !ent:IsDormant() and !table.HasValue(Meiware.whitelist, ent:SteamID()) and (Meiware.aim.ignoreteam[2] or ent:Team() != LocalPlayer():Team())
 end
 
 /*
 	[aim]
 */
 function Meiware.IsEntVisibleFromVec(ent, vec)
-	local trace = _G.util.TraceLine({mask = _G.MASK_SHOT, ignoreworld = false, filter = _G.LocalPlayer(), start = _G.LocalPlayer():EyePos(), endpos = vec})
+	local trace = util.TraceLine({mask = MASK_SHOT, ignoreworld = false, filter = LocalPlayer(), start = LocalPlayer():EyePos(), endpos = vec})
 
 	return trace.Entity == ent
 end
 
 function Meiware.CanFire()
-	if !_G.IsValid(LocalPlayer():GetActiveWeapon()) then return false end
+	if !IsValid(LocalPlayer():GetActiveWeapon()) then return false end
 
-	return _G.LocalPlayer():GetActiveWeapon():Clip1() > 0 and _G.LocalPlayer():GetActiveWeapon():GetActivity() != _G.ACT_RELOAD and _G.LocalPlayer():GetActiveWeapon():GetNextPrimaryFire() < Meiware.curtime
+	return LocalPlayer():GetActiveWeapon():Clip1() > 0 and LocalPlayer():GetActiveWeapon():GetActivity() != ACT_RELOAD and LocalPlayer():GetActiveWeapon():GetNextPrimaryFire() < Meiware.curtime
 end
 
 function Meiware.MultiPoint(ent, hitbox)
-	if !_G.isnumber(ent:GetHitBoxBone(hitbox, 0)) then return ent:WorldSpaceCenter() + _G.Vector(_G.math.Rand(-1, 1), _G.math.Rand(-1, 1), _G.math.Rand(-1, 1)) end
+	if !isnumber(ent:GetHitBoxBone(hitbox, 0)) then return ent:WorldSpaceCenter() + Vector(math.Rand(-1, 1), math.Rand(-1, 1), math.Rand(-1, 1)) end
 
 	local vec, ang = ent:GetBonePosition(ent:GetHitBoxBone(hitbox, 0))
 	local min, max = ent:GetHitBoxBounds(hitbox, 0)
-	local offset = _G.Vector(_G.math.Rand(min.x, max.x), _G.math.Rand(min.y, max.y), _G.math.Rand(min.z, max.z))
+	local offset = Vector(math.Rand(min.x, max.x), math.Rand(min.y, max.y), math.Rand(min.z, max.z))
 
 	offset:Rotate(ang)
 
@@ -187,9 +179,9 @@ function Meiware.MultiPoint(ent, hitbox)
 end
 
 function Meiware.CurTimeFix()
-	if !_G.IsFirstTimePredicted() then return end
+	if !IsFirstTimePredicted() then return end
 
-	Meiware.curtime = _G.CurTime() + _G.engine.TickInterval()
+	Meiware.curtime = CurTime() + engine.TickInterval()
 end
 
 function Meiware.Attack(cmd, bool, caller)
@@ -205,15 +197,15 @@ function Meiware.Attack(cmd, bool, caller)
 
 	if bool then
 		if Meiware.firing then
-			cmd:AddKey(_G.IN_ATTACK)
+			cmd:AddKey(IN_ATTACK)
 		else
-			cmd:RemoveKey(_G.IN_ATTACK)
+			cmd:RemoveKey(IN_ATTACK)
 		end
 
 		Meiware.firing = !Meiware.firing
 	else
 		if Meiware.firing then
-			cmd:RemoveKey(_G.IN_ATTACK)
+			cmd:RemoveKey(IN_ATTACK)
 
 			Meiware.firing = false
 		end
@@ -224,22 +216,22 @@ function Meiware.TargetFinder(cmd)
 	if !Meiware.aim.aimbot[2] then return end
 
 	local closest_target = nil
-	local closest_target_vec = _G.Vector(0, 0, 0)
-	local closest_target_ang = _G.Angle(0, 0, 0)
+	local closest_target_vec = Vector(0, 0, 0)
+	local closest_target_ang = Angle(0, 0, 0)
 	local closest_target_fov = 360
 
-	for k, v in _G.pairs(_G.ents.GetAll()) do
+	for k, v in pairs(ents.GetAll()) do
 		if Meiware.IsValidTarget(v) then
-			local hitbox = Meiware.hitboxes[_G.table.Random(Meiware.hitboxlist)]
+			local hitbox = Meiware.hitboxes[table.Random(Meiware.hitboxlist)]
 			local vec = Meiware.MultiPoint(v, hitbox)
 
 			if Meiware.IsEntVisibleFromVec(v, vec) then
-				local ang = (vec - _G.LocalPlayer():EyePos()):Angle()
+				local ang = (vec - LocalPlayer():EyePos()):Angle()
 
 				Meiware.Normalize(ang)
 				Meiware.Clamp(ang)
 
-				local fov = _G.math.abs(_G.math.NormalizeAngle(Meiware.false_ang.y - ang.y)) + _G.math.abs(_G.math.NormalizeAngle(Meiware.false_ang.p - ang.p))
+				local fov = math.abs(math.NormalizeAngle(Meiware.false_ang.y - ang.y)) + math.abs(math.NormalizeAngle(Meiware.false_ang.p - ang.p))
 
 				if fov < closest_target_fov then
 					closest_target = v
@@ -260,27 +252,23 @@ end
 function Meiware.Aimbot(cmd)
 	if !Meiware.aim.aimbot[2] then return end
 
-	if Meiware.IsValidTarget(Meiware.target) and Meiware.CanFire() and !_G.input.IsMouseDown(_G.MOUSE_LEFT) and (Meiware.aim.ignorefov[2] or (_G.input.IsMouseDown(Meiware.aimbot_key) and Meiware.target_fov <= Meiware.aimbot_fov)) then
+	if Meiware.IsValidTarget(Meiware.target) and Meiware.CanFire() and !input.IsMouseDown(MOUSE_LEFT) and (Meiware.aim.ignorefov[2] or (input.IsMouseDown(Meiware.aimbot_key) and Meiware.target_fov <= Meiware.aimbot_fov)) then
 		cmd:SetViewAngles(Meiware.target_ang)
 
-		if Meiware.aim.triggerbot[2] then
-			Meiware.Attack(cmd, true, "aimbot")
-		end
+		Meiware.Attack(cmd, true, "aimbot")
 	else
 		cmd:SetViewAngles(Meiware.false_ang)
 
-		if Meiware.aim.triggerbot[2] then
-			Meiware.Attack(cmd, false, "aimbot")
-		end
+		Meiware.Attack(cmd, false, "aimbot")
 	end
 end
 
 function Meiware.Triggerbot(cmd)
 	if !Meiware.aim.triggerbot[2] then return end
 
-	local trace = _G.util.TraceLine({mask = _G.MASK_SHOT, start = _G.LocalPlayer():EyePos(), endpos = _G.LocalPlayer():EyePos() + cmd:GetViewAngles():Forward() * 32768, filter = _G.LocalPlayer()})
+	local trace = util.TraceLine({mask = MASK_SHOT, start = LocalPlayer():EyePos(), endpos = LocalPlayer():EyePos() + cmd:GetViewAngles():Forward() * 32768, filter = LocalPlayer()})
 
-	if Meiware.IsValidTarget(trace.Entity) and Meiware.CanFire() and (Meiware.aim.ignorefov[2] or _G.input.IsMouseDown(Meiware.aimbot_key)) then
+	if Meiware.IsValidTarget(trace.Entity) and Meiware.CanFire() and (Meiware.aim.ignorefov[2] or input.IsMouseDown(Meiware.aimbot_key)) then
 		Meiware.Attack(cmd, true, "triggerbot")
 	else
 		Meiware.Attack(cmd, false, "triggerbot")
@@ -289,15 +277,15 @@ end
 
 function Meiware.MovementFix(cmd)
 	if Meiware.aim.aimbot[2] then
-		local temp_false_ang = Meiware.false_ang + _G.Angle(cmd:GetMouseY() * _G.GetConVar("m_pitch"):GetFloat(), -cmd:GetMouseX() * _G.GetConVar("m_yaw"):GetFloat(), 0)
+		local temp_false_ang = Meiware.false_ang + Angle(cmd:GetMouseY() * GetConVar("m_pitch"):GetFloat(), -cmd:GetMouseX() * GetConVar("m_yaw"):GetFloat(), 0)
 
 		Meiware.Normalize(temp_false_ang)
 		Meiware.Clamp(temp_false_ang)
 
 		Meiware.false_ang = temp_false_ang
 
-		local vec = _G.Vector(cmd:GetForwardMove(), cmd:GetSideMove(), 0)
-		local vel = _G.math.sqrt(vec.x * vec.x + vec.y * vec.y)
+		local vec = Vector(cmd:GetForwardMove(), cmd:GetSideMove(), 0)
+		local vel = math.sqrt(vec.x * vec.x + vec.y * vec.y)
 		local mang = vec:Angle()
 		local yaw = cmd:GetViewAngles().y - Meiware.false_ang.y + mang.y
 
@@ -307,10 +295,10 @@ function Meiware.MovementFix(cmd)
 
 		yaw = ((yaw + 180) % 360) - 180
 
-		cmd:SetForwardMove(_G.math.cos(_G.math.rad(yaw)) * vel)
-		cmd:SetSideMove(_G.math.sin(_G.math.rad(yaw)) * vel)
+		cmd:SetForwardMove(math.cos(math.rad(yaw)) * vel)
+		cmd:SetSideMove(math.sin(math.rad(yaw)) * vel)
 	else
-		Meiware.false_ang = _G.EyeAngles()
+		Meiware.false_ang = EyeAngles()
 	end
 end
 
@@ -325,57 +313,57 @@ function Meiware.Freecam(cmd)
 		end
 
 		if cmd:KeyDown(IN_FORWARD) then
-			Meiware.false_vec = Meiware.false_vec + _G.EyeAngles():Forward() * (Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + EyeAngles():Forward() * (Meiware.freecamspeed * multiplier)
 		end
 
 		if cmd:KeyDown(IN_BACK) then
-			Meiware.false_vec = Meiware.false_vec + _G.EyeAngles():Forward() * (-Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + EyeAngles():Forward() * (-Meiware.freecamspeed * multiplier)
 		end
 
 		if cmd:KeyDown(IN_MOVELEFT) then
-			Meiware.false_vec = Meiware.false_vec + _G.EyeAngles():Right() * (-Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + EyeAngles():Right() * (-Meiware.freecamspeed * multiplier)
 		end
 
 		if cmd:KeyDown(IN_MOVERIGHT) then
-			Meiware.false_vec = Meiware.false_vec + _G.EyeAngles():Right() * (Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + EyeAngles():Right() * (Meiware.freecamspeed * multiplier)
 		end
 
 		if cmd:KeyDown(IN_JUMP) then
-			Meiware.false_vec = Meiware.false_vec + _G.Angle(0, 0, 0):Up() * (Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + Angle(0, 0, 0):Up() * (Meiware.freecamspeed * multiplier)
 		end
 
 		if cmd:KeyDown(IN_DUCK) then
-			Meiware.false_vec = Meiware.false_vec + _G.Angle(0, 0, 0):Up() * (-Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + Angle(0, 0, 0):Up() * (-Meiware.freecamspeed * multiplier)
 		end
 	else
-		Meiware.false_vec = _G.EyePos()
+		Meiware.false_vec = EyePos()
 	end
 end
 
 function Meiware.AutoReload(cmd)
-	if Meiware.aim.autoreload[2] and _G.IsValid(_G.LocalPlayer():GetActiveWeapon()) then
-		if _G.LocalPlayer():GetActiveWeapon().Primary then
-			if _G.LocalPlayer():GetActiveWeapon():Clip1() == 0 and _G.LocalPlayer():GetActiveWeapon():GetMaxClip1() > 0 then
-				cmd:AddKey(_G.IN_RELOAD)
+	if Meiware.aim.autoreload[2] and IsValid(LocalPlayer():GetActiveWeapon()) then
+		if LocalPlayer():GetActiveWeapon().Primary then
+			if LocalPlayer():GetActiveWeapon():Clip1() == 0 and LocalPlayer():GetActiveWeapon():GetMaxClip1() > 0 then
+				cmd:AddKey(IN_RELOAD)
 
 				Meiware.reloading = true
 			else
 				if Meiware.reloading then
-					cmd:RemoveKey(_G.IN_RELOAD)
+					cmd:RemoveKey(IN_RELOAD)
 
 					Meiware.reloading = false
 				end
 			end
 		else
 			if Meiware.reloading then
-				cmd:RemoveKey(_G.IN_RELOAD)
+				cmd:RemoveKey(IN_RELOAD)
 
 				Meiware.reloading = false
 			end
 		end
 	else
 		if Meiware.reloading then
-			cmd:RemoveKey(_G.IN_RELOAD)
+			cmd:RemoveKey(IN_RELOAD)
 
 			Meiware.reloading = false
 		end
@@ -388,97 +376,108 @@ end
 function Meiware.Wallhack()
 	if !Meiware.visuals.wallhack[2] then return end
 
-	_G.cam.Start3D()
-	_G.render.SetStencilWriteMask(0xFF)
-	_G.render.SetStencilTestMask(0xFF)
-	_G.render.SetStencilReferenceValue(0)
-	_G.render.SetStencilCompareFunction(_G.STENCIL_ALWAYS)
-	_G.render.SetStencilPassOperation(_G.STENCIL_KEEP)
-	_G.render.SetStencilFailOperation(_G.STENCIL_KEEP)
-	_G.render.SetStencilZFailOperation(_G.STENCIL_KEEP)
-	_G.render.ClearStencil()
+	cam.Start3D()
+	render.SetStencilWriteMask(0xFF)
+	render.SetStencilTestMask(0xFF)
+	render.SetStencilReferenceValue(0)
+	render.SetStencilCompareFunction(STENCIL_ALWAYS)
+	render.SetStencilPassOperation(STENCIL_KEEP)
+	render.SetStencilFailOperation(STENCIL_KEEP)
+	render.SetStencilZFailOperation(STENCIL_KEEP)
+	render.ClearStencil()
 
-	_G.render.SetStencilEnable(true)
-	_G.render.SetStencilReferenceValue(1)
-	_G.render.SetStencilCompareFunction(_G.STENCIL_ALWAYS)
-	_G.render.SetStencilZFailOperation(_G.STENCIL_REPLACE)
+	render.SetStencilEnable(true)
+	render.SetStencilReferenceValue(1)
+	render.SetStencilCompareFunction(STENCIL_ALWAYS)
+	render.SetStencilZFailOperation(STENCIL_REPLACE)
 
-	for k, v in _G.pairs(_G.ents.GetAll()) do
+	for k, v in pairs(ents.GetAll()) do
 		if Meiware.IsValidTarget(v) then
 			v:DrawModel()
 
-			if _G.IsValid(v:GetActiveWeapon()) then
+			if IsValid(v:GetActiveWeapon()) then
 				v:GetActiveWeapon():DrawModel()
 			end
 		end
-
-		if _G.table.HasValue(Meiware.entitylist, v:GetClass()) then
-			v:DrawModel()
-		end
 	end
 
-	_G.render.SetStencilCompareFunction(_G.STENCIL_EQUAL)
-	_G.render.ClearBuffersObeyStencil(255, 0, 0, 255, false)
-	_G.render.SetStencilEnable(false)
+	render.SetStencilCompareFunction(STENCIL_EQUAL)
+	render.ClearBuffersObeyStencil(255, 0, 0, 255, false)
+	render.SetStencilEnable(false)
 
-	_G.render.SetStencilWriteMask(0xFF)
-	_G.render.SetStencilTestMask(0xFF)
-	_G.render.SetStencilReferenceValue(0)
-	_G.render.SetStencilCompareFunction(_G.STENCIL_ALWAYS)
-	_G.render.SetStencilPassOperation(_G.STENCIL_KEEP)
-	_G.render.SetStencilFailOperation(_G.STENCIL_KEEP)
-	_G.render.SetStencilZFailOperation(_G.STENCIL_KEEP)
-	_G.render.ClearStencil()
+	render.SetStencilWriteMask(0xFF)
+	render.SetStencilTestMask(0xFF)
+	render.SetStencilReferenceValue(0)
+	render.SetStencilCompareFunction(STENCIL_ALWAYS)
+	render.SetStencilPassOperation(STENCIL_KEEP)
+	render.SetStencilFailOperation(STENCIL_KEEP)
+	render.SetStencilZFailOperation(STENCIL_KEEP)
+	render.ClearStencil()
 
-	_G.render.SetStencilEnable(true)
-	_G.render.SetStencilCompareFunction(_G.STENCIL_ALWAYS)
-	_G.render.SetStencilPassOperation(_G.STENCIL_REPLACE)
-	_G.render.SetStencilZFailOperation(_G.STENCILOPERATION_INCR)
-	_G.render.SetStencilFailOperation(_G.STENCIL_KEEP)
-	_G.render.SetStencilReferenceValue(2)
-	_G.render.SetStencilWriteMask(2)
+	render.SetStencilEnable(true)
+	render.SetStencilCompareFunction(STENCIL_ALWAYS)
+	render.SetStencilPassOperation(STENCIL_REPLACE)
+	render.SetStencilZFailOperation(STENCILOPERATION_INCR)
+	render.SetStencilFailOperation(STENCIL_KEEP)
+	render.SetStencilReferenceValue(2)
+	render.SetStencilWriteMask(2)
 
-	for k, v in _G.pairs(_G.ents.GetAll()) do
+	for k, v in pairs(ents.GetAll()) do
 		if Meiware.IsValidTarget(v) then
 			v:DrawModel()
 
-			if _G.IsValid(v:GetActiveWeapon()) then
+			if IsValid(v:GetActiveWeapon()) then
 				v:GetActiveWeapon():DrawModel()
 			end
 		end
-
-		if _G.table.HasValue(Meiware.entitylist, v:GetClass()) then
-			v:DrawModel()
-		end
 	end
 
-	_G.render.SetStencilCompareFunction(_G.STENCIL_EQUAL)
-	_G.render.ClearBuffersObeyStencil(0, 255, 0, 255, false)
-	_G.render.SetStencilEnable(false)
-	_G.cam.End3D()
+	render.SetStencilCompareFunction(STENCIL_EQUAL)
+	render.ClearBuffersObeyStencil(0, 255, 0, 255, false)
+	render.SetStencilEnable(false)
+	cam.End3D()
 end
 
 function Meiware.ESP()
 	if !Meiware.visuals.esp[2] then return end
 
-	for k, v in _G.pairs(_G.player.GetAll()) do
-		if Meiware.IsValidTarget(v) then
-			_G.surface.SetFont("Default")
+	for k, v in pairs(ents.GetAll()) do
+		if Meiware.IsValidTarget(v) and !v:IsNPC() then
+			surface.SetFont("Default")
 
-			local length = 6 + _G.math.max(_G.select(1, _G.surface.GetTextSize(v:Name())), _G.select(1, _G.surface.GetTextSize(v:Health()))) + 6
+			local length = 6 + select(1, surface.GetTextSize(v:Name())) + 6
 			local height = 24
 			local x = v:EyePos():ToScreen().x - (length / 2)
 			local y = v:EyePos():ToScreen().y - height - 6
 
-			_G.surface.SetDrawColor(36, 36, 36, 225)
-			_G.surface.DrawRect(x, y, length, height)
+			surface.SetDrawColor(36, 36, 36, 225)
+			surface.DrawRect(x, y, length, height)
 
-			_G.surface.SetDrawColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
-			_G.surface.DrawOutlinedRect(x, y, length, height, 1)
+			surface.SetDrawColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+			surface.DrawOutlinedRect(x, y, length, height, 1)
 
-			_G.surface.SetTextColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
-			_G.surface.SetTextPos(x + 6, y + 6)
-			_G.surface.DrawText(v:Name())
+			surface.SetTextColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+			surface.SetTextPos(x + 6, y + 6)
+			surface.DrawText(v:Name())
+		end
+
+		if table.HasValue(Meiware.entitylist, v:GetClass()) then
+			surface.SetFont("Default")
+
+			local length = 6 + select(1, surface.GetTextSize(v:GetClass())) + 6
+			local height = 24
+			local x = v:WorldSpaceCenter():ToScreen().x - (length / 2)
+			local y = v:WorldSpaceCenter():ToScreen().y - (height / 2)
+
+			surface.SetDrawColor(36, 36, 36, 225)
+			surface.DrawRect(x, y, length, height)
+
+			surface.SetDrawColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+			surface.DrawOutlinedRect(x, y, length, height, 1)
+
+			surface.SetTextColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+			surface.SetTextPos(x + 6, y + 6)
+			surface.DrawText(v:GetClass())
 		end
 	end
 end
@@ -488,9 +487,9 @@ function Meiware.Crosshair()
 
 	local xhair_length = 16
 	local xhair_thickness = 2
-	_G.surface.SetDrawColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
-	_G.surface.DrawRect((_G.ScrW() / 2) - (xhair_length / 2), (_G.ScrH() / 2) - (xhair_thickness / 2), xhair_length, xhair_thickness)
-	_G.surface.DrawRect((_G.ScrW() / 2) - (xhair_thickness / 2), (_G.ScrH() / 2) - (xhair_length / 2), xhair_thickness, xhair_length)
+	surface.SetDrawColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+	surface.DrawRect((ScrW() / 2) - (xhair_length / 2), (ScrH() / 2) - (xhair_thickness / 2), xhair_length, xhair_thickness)
+	surface.DrawRect((ScrW() / 2) - (xhair_thickness / 2), (ScrH() / 2) - (xhair_length / 2), xhair_thickness, xhair_length)
 end
 
 /*
@@ -499,13 +498,13 @@ end
 function Meiware.Autostrafe(cmd)
 	if !Meiware.movement.autostrafe[2] then return end
 
-	if !_G.LocalPlayer():IsOnGround() and _G.LocalPlayer():GetMoveType() != _G.MOVETYPE_LADDER and _G.LocalPlayer():GetMoveType() != _G.MOVETYPE_NOCLIP then
-		cmd:SetForwardMove(5850 / _G.LocalPlayer():GetVelocity():Length2D())
+	if !LocalPlayer():IsOnGround() and LocalPlayer():GetMoveType() != MOVETYPE_LADDER and LocalPlayer():GetMoveType() != MOVETYPE_NOCLIP then
+		cmd:SetForwardMove(5850 / LocalPlayer():GetVelocity():Length2D())
 
 		if cmd:CommandNumber() % 2 == 0 then
-			cmd:SetSideMove(-_G.LocalPlayer():GetVelocity():Length2D())
+			cmd:SetSideMove(-LocalPlayer():GetVelocity():Length2D())
 		elseif cmd:CommandNumber() % 2 != 0 then
-			cmd:SetSideMove(_G.LocalPlayer():GetVelocity():Length2D())
+			cmd:SetSideMove(LocalPlayer():GetVelocity():Length2D())
 		end
 	end
 end
@@ -513,8 +512,8 @@ end
 function Meiware.Autohop(cmd)
 	if !Meiware.movement.autohop[2] then return end
 
-	if cmd:KeyDown(_G.IN_JUMP) and !_G.LocalPlayer():IsOnGround() and _G.LocalPlayer():GetMoveType() != _G.MOVETYPE_LADDER and _G.LocalPlayer():GetMoveType() != _G.MOVETYPE_NOCLIP then
-		cmd:RemoveKey(_G.IN_JUMP)
+	if cmd:KeyDown(IN_JUMP) and !LocalPlayer():IsOnGround() and LocalPlayer():GetMoveType() != MOVETYPE_LADDER and LocalPlayer():GetMoveType() != MOVETYPE_NOCLIP then
+		cmd:RemoveKey(IN_JUMP)
 	end
 end
 
@@ -524,15 +523,15 @@ end
 function Meiware.Menu()
 	Meiware.menu = true
 
-	Meiware.frame = _G.vgui.Create("DFrame")
+	Meiware.frame = vgui.Create("DFrame")
 	Meiware.frame.title = "Meiware " .. Meiware.build_info
-	Meiware.frame.size = _G.Vector(600, 400, 0)
+	Meiware.frame.size = Vector(600, 400, 0)
 	Meiware.frame.index = 36
 	local scrollpanels = {}
-	local exit = _G.vgui.Create("DButton")
+	local exit = vgui.Create("DButton")
 
 	local addtab = function(text)
-		local scrollpanel = _G.vgui.Create("DScrollPanel")
+		local scrollpanel = vgui.Create("DScrollPanel")
 		scrollpanel.index = 6
 
 		scrollpanel:SetParent(Meiware.frame)
@@ -541,33 +540,33 @@ function Meiware.Menu()
 		scrollpanel:SetVisible(false)
 
 		function scrollpanel:Paint(w, h)
-			_G.surface.SetDrawColor(Meiware.color)
-			_G.surface.DrawOutlinedRect(0, 0, w, h)
+			surface.SetDrawColor(Meiware.color)
+			surface.DrawOutlinedRect(0, 0, w, h)
 		end
 
 		local vbar = scrollpanel:GetVBar()
 
 		function vbar:Paint(w, h)
-			_G.surface.SetDrawColor(Meiware.color)
-			_G.surface.DrawOutlinedRect(0, 0, w, h)
+			surface.SetDrawColor(Meiware.color)
+			surface.DrawOutlinedRect(0, 0, w, h)
 		end
 
 		function vbar.btnUp:Paint(w, h)
-			_G.surface.SetDrawColor(Meiware.color)
-			_G.surface.DrawOutlinedRect(0, 0, w, h)
+			surface.SetDrawColor(Meiware.color)
+			surface.DrawOutlinedRect(0, 0, w, h)
 		end
 
 		function vbar.btnDown:Paint(w, h)
-			_G.surface.SetDrawColor(Meiware.color)
-			_G.surface.DrawOutlinedRect(0, 0, w, h)
+			surface.SetDrawColor(Meiware.color)
+			surface.DrawOutlinedRect(0, 0, w, h)
 		end
 
 		function vbar.btnGrip:Paint(w, h)
-			_G.surface.SetDrawColor(Meiware.color)
-			_G.surface.DrawOutlinedRect(0, 0, w, h)
+			surface.SetDrawColor(Meiware.color)
+			surface.DrawOutlinedRect(0, 0, w, h)
 		end
 
-		local button = _G.vgui.Create("DButton")
+		local button = vgui.Create("DButton")
 
 		button:SetParent(Meiware.frame)
 		button:SetText(text)
@@ -576,24 +575,24 @@ function Meiware.Menu()
 		button:SetVisible(true)
 		button:SetTextColor(Meiware.color)
 		button.DoClick = function()
-			for k, v in _G.pairs(scrollpanels) do
+			for k, v in pairs(scrollpanels) do
 				v:SetVisible(false)
 			end
 
 			scrollpanel:SetVisible(true)
 
-			_G.surface.PlaySound("ambient/levels/canals/drip4.wav")
+			surface.PlaySound("ambient/levels/canals/drip4.wav")
 		end
 
 		function button:Paint(w, h)
 			if scrollpanel:IsVisible() then
-				_G.surface.SetDrawColor(Meiware.color)
-				_G.surface.DrawRect(0, 0, w, h)
+				surface.SetDrawColor(Meiware.color)
+				surface.DrawRect(0, 0, w, h)
 
 				button:SetTextColor(Color(255, 255, 255))
 			else
-				_G.surface.SetDrawColor(Meiware.color)
-				_G.surface.DrawOutlinedRect(0, 0, w, h)
+				surface.SetDrawColor(Meiware.color)
+				surface.DrawOutlinedRect(0, 0, w, h)
 
 				button:SetTextColor(Meiware.color)
 			end
@@ -601,20 +600,20 @@ function Meiware.Menu()
 
 		Meiware.frame.index = Meiware.frame.index + 54
 
-		_G.table.insert(scrollpanels, scrollpanel)
+		table.insert(scrollpanels, scrollpanel)
 
 		return scrollpanel
 	end
 
 	local addtoggle = function(var, panel)
-		local label = _G.vgui.Create("DLabel")
-		local button = _G.vgui.Create("DButton")
+		local label = vgui.Create("DLabel")
+		local button = vgui.Create("DButton")
 
-		_G.surface.SetFont("Default")
+		surface.SetFont("Default")
 
 		label:SetParent(panel)
 		label:SetText(var[1])
-		label:SetWide(_G.surface.GetTextSize(var[1]))
+		label:SetWide(surface.GetTextSize(var[1]))
 		label:SetPos(6, panel.index)
 		label:SetVisible(true)
 		label:SetTextColor(Meiware.color)
@@ -623,20 +622,20 @@ function Meiware.Menu()
 		button:SetText("")
 		button:SetVisible(true)
 		button:SetSize(24, 24)
-		button:SetPos(6 + _G.surface.GetTextSize(var[1]) + 6, panel.index)
+		button:SetPos(6 + surface.GetTextSize(var[1]) + 6, panel.index)
 		button.DoClick = function()
 			var[2] = !var[2]
 
-			_G.surface.PlaySound("ambient/levels/canals/drip4.wav")
+			surface.PlaySound("ambient/levels/canals/drip4.wav")
 		end
 
 		function button:Paint(w, h)
 			if var[2] then
-				_G.surface.SetDrawColor(Meiware.color)
-				_G.surface.DrawRect(0, 0, w, h)
+				surface.SetDrawColor(Meiware.color)
+				surface.DrawRect(0, 0, w, h)
 			else
-				_G.surface.SetDrawColor(Meiware.color)
-				_G.surface.DrawOutlinedRect(0, 0, w, h)
+				surface.SetDrawColor(Meiware.color)
+				surface.DrawOutlinedRect(0, 0, w, h)
 			end
 		end
 
@@ -647,7 +646,7 @@ function Meiware.Menu()
 		label:SetTextStyleColor(Meiware.color)
 	end
 
-	Meiware.frame:SetPos(_G.ScrW() / 2 - (Meiware.frame.size.x / 2), _G.ScrH() / 2 - (Meiware.frame.size.y / 2))
+	Meiware.frame:SetPos(ScrW() / 2 - (Meiware.frame.size.x / 2), ScrH() / 2 - (Meiware.frame.size.y / 2))
 	Meiware.frame:SetSize(Meiware.frame.size.x, Meiware.frame.size.y)
 	Meiware.frame:SetVisible(true)
 	Meiware.frame:SetTitle(Meiware.frame.title)
@@ -656,10 +655,10 @@ function Meiware.Menu()
 	Meiware.frame:MakePopup()
 
 	function Meiware.frame:Paint(w, h)
-		_G.surface.SetDrawColor(_G.Color(36, 36, 36, 225))
-		_G.surface.DrawRect(0, 0, w, h)
-		_G.surface.SetDrawColor(Meiware.color)
-		_G.surface.DrawOutlinedRect(0, 0, w, h)
+		surface.SetDrawColor(Color(36, 36, 36, 225))
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(Meiware.color)
+		surface.DrawOutlinedRect(0, 0, w, h)
 	end
 
 	exit:SetParent(Meiware.frame)
@@ -672,14 +671,14 @@ function Meiware.Menu()
 
 		Meiware.menu = false
 
-		_G.surface.PlaySound("ambient/levels/canals/drip4.wav")
+		surface.PlaySound("ambient/levels/canals/drip4.wav")
 	end
 
 	function exit:Paint(w, h)
-		_G.surface.SetDrawColor(Meiware.color)
-		_G.surface.DrawOutlinedRect(0, 0, w, h)
-		_G.surface.DrawLine(8, 8, 15, 15)
-		_G.surface.DrawLine(15, 8, 8, 15)
+		surface.SetDrawColor(Meiware.color)
+		surface.DrawOutlinedRect(0, 0, w, h)
+		surface.DrawLine(8, 8, 15, 15)
+		surface.DrawLine(15, 8, 8, 15)
 	end
 
 	local tab_aim = addtab("aim")
@@ -691,21 +690,21 @@ function Meiware.Menu()
 
 	tab_aim:SetVisible(true)
 
-	for k, v in _G.pairs(Meiware.aim) do
+	for k, v in pairs(Meiware.aim) do
 		addtoggle(v, tab_aim)
 	end
 
-	for k, v in _G.pairs(Meiware.visuals) do
+	for k, v in pairs(Meiware.visuals) do
 		addtoggle(v, tab_visuals)
 	end
 
-	for k, v in _G.pairs(Meiware.movement) do
+	for k, v in pairs(Meiware.movement) do
 		addtoggle(v, tab_movement)
 	end
 
-	for k, v in _G.pairs(_G.player.GetAll()) do
-		if _G.IsValid(v) then
-			local button = _G.vgui.Create("DButton")
+	for k, v in pairs(player.GetAll()) do
+		if IsValid(v) then
+			local button = vgui.Create("DButton")
 
 			button:SetParent(tab_whitelist)
 			button:SetColor(Meiware.color)
@@ -713,20 +712,20 @@ function Meiware.Menu()
 			button:SetSize(Meiware.frame.size.x - 6 - 72 - 6 - 6 - 6 - 18, 24)
 			button:SetText(v:Name() .. " " .. v:SteamID())
 			button.DoClick = function()
-				if !_G.table.HasValue(Meiware.whitelist, v:SteamID()) then
-					_G.table.insert(Meiware.whitelist, v:SteamID())
+				if !table.HasValue(Meiware.whitelist, v:SteamID()) then
+					table.insert(Meiware.whitelist, v:SteamID())
 				else
-					_G.table.RemoveByValue(Meiware.whitelist, v:SteamID())
+					table.RemoveByValue(Meiware.whitelist, v:SteamID())
 				end
 			end
 
 			function button:Paint(w, h)
-				if _G.table.HasValue(Meiware.whitelist, v:SteamID()) then
-					_G.surface.SetDrawColor(Color(0, 255, 255))
-					_G.surface.DrawOutlinedRect(0, 0, w, h)
+				if table.HasValue(Meiware.whitelist, v:SteamID()) then
+					surface.SetDrawColor(Color(0, 255, 255))
+					surface.DrawOutlinedRect(0, 0, w, h)
 				else
-					_G.surface.SetDrawColor(Color(255, 0, 0))
-					_G.surface.DrawOutlinedRect(0, 0, w, h)
+					surface.SetDrawColor(Color(255, 0, 0))
+					surface.DrawOutlinedRect(0, 0, w, h)
 				end
 			end
 
@@ -736,11 +735,11 @@ function Meiware.Menu()
 
 	local entitylist = {}
 
-	for k, v in _G.pairs(_G.ents.GetAll()) do
-		if _G.IsValid(v) and !_G.table.HasValue(entitylist, v:GetClass()) then
-			_G.table.insert(entitylist, v:GetClass())
+	for k, v in pairs(ents.GetAll()) do
+		if IsValid(v) and !table.HasValue(entitylist, v:GetClass()) then
+			table.insert(entitylist, v:GetClass())
 
-			local button = _G.vgui.Create("DButton")
+			local button = vgui.Create("DButton")
 
 			button:SetParent(tab_entitylist)
 			button:SetColor(Meiware.color)
@@ -748,20 +747,20 @@ function Meiware.Menu()
 			button:SetSize(Meiware.frame.size.x - 6 - 72 - 6 - 6 - 6 - 18, 24)
 			button:SetText(v:GetClass())
 			button.DoClick = function()
-				if _G.table.HasValue(Meiware.entitylist, v:GetClass()) then
-					_G.table.RemoveByValue(Meiware.entitylist, v:GetClass())
+				if table.HasValue(Meiware.entitylist, v:GetClass()) then
+					table.RemoveByValue(Meiware.entitylist, v:GetClass())
 				else
-					_G.table.insert(Meiware.entitylist, v:GetClass())
+					table.insert(Meiware.entitylist, v:GetClass())
 				end
 			end
 
 			function button:Paint(w, h)
-				if _G.table.HasValue(Meiware.entitylist, v:GetClass()) then
-					_G.surface.SetDrawColor(Color(0, 255, 255))
-					_G.surface.DrawOutlinedRect(0, 0, w, h)
+				if table.HasValue(Meiware.entitylist, v:GetClass()) then
+					surface.SetDrawColor(Color(0, 255, 255))
+					surface.DrawOutlinedRect(0, 0, w, h)
 				else
-					_G.surface.SetDrawColor(Color(255, 0, 0))
-					_G.surface.DrawOutlinedRect(0, 0, w, h)
+					surface.SetDrawColor(Color(255, 0, 0))
+					surface.DrawOutlinedRect(0, 0, w, h)
 				end
 			end
 
@@ -769,8 +768,8 @@ function Meiware.Menu()
 		end
 	end
 
-	for k, v in _G.pairs({"Head", "L Upperarm", "L Forearm", "L Hand", "R Upperarm", "R Forearm", "R Hand", "L Thigh", "L Calf", "L Foot", "L Toe", "R Thigh", "R Calf", "R Foot", "R Toe", "Pelvis", "Spine"}) do
-		local button = _G.vgui.Create("DButton")
+	for k, v in pairs({"head", "L arm", "L forearm", "L hand", "R arm", "R forearm", "R hand", "L thigh", "L calf", "L foot", "L toe", "R thigh", "R calf", "R foot", "R toe", "pelvis", "spine"}) do
+		local button = vgui.Create("DButton")
 
 		button:SetParent(tab_hitboxlist)
 		button:SetColor(Meiware.color)
@@ -778,20 +777,20 @@ function Meiware.Menu()
 		button:SetSize(Meiware.frame.size.x - 6 - 72 - 6 - 6 - 6 - 18, 24)
 		button:SetText(v)
 		button.DoClick = function()
-			if _G.table.HasValue(Meiware.hitboxlist, v) then
-				_G.table.RemoveByValue(Meiware.hitboxlist, v)
+			if table.HasValue(Meiware.hitboxlist, v) then
+				table.RemoveByValue(Meiware.hitboxlist, v)
 			else
-				_G.table.insert(Meiware.hitboxlist, v)
+				table.insert(Meiware.hitboxlist, v)
 			end
 		end
 
 		function button:Paint(w, h)
-			if _G.table.HasValue(Meiware.hitboxlist, v) then
-				_G.surface.SetDrawColor(Color(0, 255, 255))
-				_G.surface.DrawOutlinedRect(0, 0, w, h)
+			if table.HasValue(Meiware.hitboxlist, v) then
+				surface.SetDrawColor(Color(0, 255, 255))
+				surface.DrawOutlinedRect(0, 0, w, h)
 			else
-				_G.surface.SetDrawColor(Color(255, 0, 0))
-				_G.surface.DrawOutlinedRect(0, 0, w, h)
+				surface.SetDrawColor(Color(255, 0, 0))
+				surface.DrawOutlinedRect(0, 0, w, h)
 			end
 		end
 
@@ -800,7 +799,7 @@ function Meiware.Menu()
 end
 
 function Meiware.MenuKeyListener()
-	if _G.input.IsKeyDown(Meiware.menu_key) and !Meiware.menu then
+	if input.IsKeyDown(Meiware.menu_key) and !Meiware.menu then
 		Meiware.Menu()
 	end
 end
@@ -870,31 +869,31 @@ function Meiware.Move()
 end
 
 function Meiware.Initiate()
-	_G.print("[Meiware] initiating...")
+	print("[Meiware] initiating...")
 
-	_G.hook.Add("CreateMove", "MeiwareCreateMove", Meiware.CreateMove)
-	_G.hook.Add("CalcView", "MeiwareCalcView", Meiware.CalcView)
-	_G.hook.Add("CalcViewModelView", "MeiwareCalcViewModelView", Meiware.CalcViewModelView)
-	_G.hook.Add("PostDrawOpaqueRenderables", "MeiwarePostDrawOpaqueRenderables", Meiware.PostDrawOpaqueRenderables)
-	_G.hook.Add("HUDPaint", "MeiwareHUDPaint", Meiware.HUDPaint)
-	_G.hook.Add("Think", "MeiwareThink", Meiware.Think)
-	_G.hook.Add("Move", "MeiwareMove", Meiware.Move)
+	hook.Add("CreateMove", "MeiwareCreateMove", Meiware.CreateMove)
+	hook.Add("CalcView", "MeiwareCalcView", Meiware.CalcView)
+	hook.Add("CalcViewModelView", "MeiwareCalcViewModelView", Meiware.CalcViewModelView)
+	hook.Add("PostDrawOpaqueRenderables", "MeiwarePostDrawOpaqueRenderables", Meiware.PostDrawOpaqueRenderables)
+	hook.Add("HUDPaint", "MeiwareHUDPaint", Meiware.HUDPaint)
+	hook.Add("Think", "MeiwareThink", Meiware.Think)
+	hook.Add("Move", "MeiwareMove", Meiware.Move)
 
-	_G.print("[Meiware] initiated.")
+	print("[Meiware] initiated.")
 end
 
 function Meiware.Terminate()
-	_G.print("[Meiware] terminating...")
+	print("[Meiware] terminating...")
 
-	_G.hook.Remove("CreateMove", "MeiwareCreateMove")
-	_G.hook.Remove("CalcView", "MeiwareCalcView")
-	_G.hook.Remove("CalcViewModelView", "MeiwareCalcViewModelView")
-	_G.hook.Remove("PostDrawOpaqueRenderables", "MeiwarePostDrawOpaqueRenderables")
-	_G.hook.Remove("HUDPaint", "MeiwareHUDPaint")
-	_G.hook.Remove("Think", "MeiwareThink")
-	_G.hook.Remove("Move", "MeiwareMove")
+	hook.Remove("CreateMove", "MeiwareCreateMove")
+	hook.Remove("CalcView", "MeiwareCalcView")
+	hook.Remove("CalcViewModelView", "MeiwareCalcViewModelView")
+	hook.Remove("PostDrawOpaqueRenderables", "MeiwarePostDrawOpaqueRenderables")
+	hook.Remove("HUDPaint", "MeiwareHUDPaint")
+	hook.Remove("Think", "MeiwareThink")
+	hook.Remove("Move", "MeiwareMove")
 
-	_G.print("[Meiware] terminated.")
+	print("[Meiware] terminated.")
 end
 
 Meiware.Initiate()
