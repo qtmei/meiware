@@ -92,6 +92,9 @@ render.CapturePixels = function()
 	return Meiware["old render.CapturePixels"]
 end
 
+/*
+	[aim]
+*/
 function Meiware.Normalize(ang)
 	while ang.p > 180 do
 		ang.p = ang.p - 360
@@ -134,9 +137,6 @@ function Meiware.IsValidTarget(ent)
 	return ent != LocalPlayer() and ent:IsPlayer() and ent:Alive() and ent:Team() != TEAM_SPECTATOR and !ent:IsDormant() and (Meiware.aim.ignoreteam[2] or ent:Team() != LocalPlayer():Team())
 end
 
-/*
-	[aim]
-*/
 function Meiware.IsEntVisibleFromVec(ent, vec)
 	local trace = util.TraceLine({mask = MASK_SHOT, ignoreworld = false, filter = LocalPlayer(), start = LocalPlayer():EyePos(), endpos = vec})
 
