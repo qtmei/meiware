@@ -2,7 +2,7 @@
 	[Header]
 */
 local Meiware = {
-	build_info = "2022-08-13 @ 17:18 UTC",
+	build_info = "2022-08-13 @ 17:49 UTC",
 
 	color = Color(0, 255, 0),
 	menu_key = KEY_INSERT,
@@ -77,7 +77,6 @@ local Meiware = {
 surface.SetFont("Default")
 
 render.Capture = function(captureData)
-	Meiware.frame:SetVisible(false)
 	Meiware.Terminate()
 
 	timer.Simple(1, function() Meiware.Initiate() end)
@@ -86,7 +85,6 @@ render.Capture = function(captureData)
 end
 
 render.CapturePixels = function()
-	Meiware.frame:SetVisible(false)
 	Meiware.Terminate()
 
 	timer.Simple(1, function() Meiware.Initiate() end)
@@ -821,6 +819,8 @@ end
 
 function Meiware.Terminate()
 	print("[Meiware] terminating...")
+
+	Meiware.frame:SetVisible(false)
 
 	hook.Remove("CreateMove", "MeiwareCreateMove")
 	hook.Remove("CalcView", "MeiwareCalcView")
