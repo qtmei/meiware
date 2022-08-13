@@ -2,7 +2,7 @@
 	[Header]
 */
 local Meiware = {
-	build_info = "2022-08-13 @ 17:49 UTC",
+	build_info = "2022-08-13 @ 18:13 UTC",
 
 	color = Color(0, 255, 0),
 	menu_key = KEY_INSERT,
@@ -436,8 +436,8 @@ function Meiware.ESP()
 		if Meiware.IsValidTarget(v) and !v:IsNPC() then
 			local length = 6 + select(1, surface.GetTextSize(v:Name())) + 6
 			local height = 24
-			local x = v:EyePos():ToScreen().x - (length / 2)
-			local y = v:EyePos():ToScreen().y - height - 6
+			local x = v:GetPos():ToScreen().x - (length / 2)
+			local y = (v:EyePos() + Vector(0, 0, 8)):ToScreen().y - height
 
 			surface.SetDrawColor(36, 36, 36, 225)
 			surface.DrawRect(x, y, length, height)
