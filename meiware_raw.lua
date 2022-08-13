@@ -2,7 +2,7 @@
 	[Header]
 */
 local Meiware = {
-	build_info = "2022-08-13 @ 18:13 UTC",
+	build_info = "2022-08-13 @ 19:20 UTC",
 
 	color = Color(0, 255, 0),
 	menu_key = KEY_INSERT,
@@ -553,7 +553,7 @@ Meiware.frame.scrollpanels = {}
 Meiware.frame.AddTab = function(text)
 	local scrollpanel = vgui.Create("DScrollPanel", Meiware.frame)
 	scrollpanel.index = 6
-	scrollpanel:SetSize(Meiware.frame.size.x - 6 - 72 - 6 - 6, Meiware.frame.size.y - 6 - 24 - 6)
+	scrollpanel:SetSize(Meiware.frame.size.x - 6 - 72 - 6 - 6, Meiware.frame.size.y - 6 - 24 - 6 - 6)
 	scrollpanel:SetPos(6 + 72 + 6, 6 + 24 + 6)
 	scrollpanel:SetVisible(false)
 
