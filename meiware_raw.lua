@@ -55,6 +55,7 @@ local Meiware = {
 	},
 
 	frame = nil,
+	localplayer = LocalPlayer(),
 
 	false_ang = EyeAngles(),
 	false_vec = EyePos(),
@@ -85,19 +86,21 @@ function Meiware.IsValidTarget(ent)
 	if ent:IsEffectActive(EF_NODRAW) or ent:GetRenderMode() == RENDERMODE_NONE or ent:GetRenderMode() == RENDERMODE_TRANSCOLOR or ent:GetColor().a == 0 then return false end
 	if Meiware.aim.ignorenpc[2] and ent:IsNPC() then return true end
 
-	return ent != LocalPlayer() and ent:IsPlayer() and ent:Alive() and ent:Team() != TEAM_SPECTATOR and !ent:IsDormant() and (Meiware.aim.ignoreteam[2] or ent:Team() != LocalPlayer():Team())
+	return ent != Meiware.localplayer and ent:IsPlayer() and ent:Alive() and ent:Team() != TEAM_SPECTATOR and !ent:IsDormant() and (Meiware.aim.ignoreteam[2] or ent:Team() != Meiware.localplayer:Team())
 end
 
 function Meiware.IsEntVisibleFromVec(ent, vec)
-	local trace = util.TraceLine({mask = MASK_SHOT, ignoreworld = false, filter = LocalPlayer(), start = LocalPlayer():EyePos(), endpos = vec})
+	local trace = util.TraceLine({mask = MASK_SHOT, ignoreworld = false, filter = Meiware.localplayer, start = Meiware.localplayer:EyePos(), endpos = vec})
 
 	return trace.Entity == ent
 end
 
 function Meiware.CanFire()
-	if !IsValid(LocalPlayer():GetActiveWeapon()) then return false end
+	local wep = Meiware.localplayer:GetActiveWeapon()
 
-	return LocalPlayer():GetActiveWeapon():Clip1() > 0 and LocalPlayer():GetActiveWeapon():GetActivity() != ACT_RELOAD and LocalPlayer():GetActiveWeapon():GetNextPrimaryFire() < Meiware.curtime
+	if !IsValid(wep) then return false end
+
+	return wep:Clip1() > 0 and wep:GetActivity() != ACT_RELOAD and wep:GetNextPrimaryFire() < Meiware.curtime
 end
 
 function Meiware.MultiPoint(ent, hitbox)
@@ -136,7 +139,7 @@ function Meiware.TargetFinder(cmd)
 			local vec = Meiware.MultiPoint(v, hitbox)
 
 			if Meiware.IsEntVisibleFromVec(v, vec) then
-				local ang = (vec - LocalPlayer():EyePos()):Angle()
+				local ang = (vec - Meiware.localplayer:EyePos()):Angle()
 
 				ang:Normalize()
 				Meiware.Clamp(ang)
@@ -173,7 +176,7 @@ end
 function Meiware.Triggerbot(cmd)
 	if !Meiware.aim.triggerbot[2] then return end
 
-	local trace = util.TraceLine({mask = MASK_SHOT, start = LocalPlayer():EyePos(), endpos = LocalPlayer():EyePos() + cmd:GetViewAngles():Forward() * 32768, filter = LocalPlayer()})
+	local trace = util.TraceLine({mask = MASK_SHOT, start = Meiware.localplayer:EyePos(), endpos = Meiware.localplayer:EyePos() + cmd:GetViewAngles():Forward() * 32768, filter = Meiware.localplayer})
 
 	if Meiware.IsValidTarget(trace.Entity) and Meiware.CanFire() and (Meiware.aim.ignorefov[2] or input.IsButtonDown(Meiware.aimtrig_key)) then
 		cmd:AddKey(IN_ATTACK)
@@ -246,9 +249,11 @@ function Meiware.Freecam(cmd)
 end
 
 function Meiware.AutoReload(cmd)
-	if Meiware.aim.autoreload[2] and IsValid(LocalPlayer():GetActiveWeapon()) then
-		if LocalPlayer():GetActiveWeapon().Primary then
-			if LocalPlayer():GetActiveWeapon():Clip1() == 0 and LocalPlayer():GetActiveWeapon():GetMaxClip1() > 0 then
+	local wep = Meiware.localplayer:GetActiveWeapon()
+
+	if Meiware.aim.autoreload[2] and IsValid(wep) then
+		if wep.Primary then
+			if wep:Clip1() == 0 and wep:GetMaxClip1() > 0 and Meiware.localplayer:GetAmmoCount(wep:GetPrimaryAmmoType()) > 0 then
 				cmd:AddKey(IN_RELOAD)
 			end
 		end
@@ -383,13 +388,13 @@ end
 function Meiware.Autostrafe(cmd)
 	if !Meiware.movement.autostrafe[2] then return end
 
-	if !LocalPlayer():IsOnGround() and LocalPlayer():GetMoveType() != MOVETYPE_LADDER and LocalPlayer():GetMoveType() != MOVETYPE_NOCLIP then
-		cmd:SetForwardMove(5850 / LocalPlayer():GetVelocity():Length2D())
+	if !Meiware.localplayer:IsOnGround() and Meiware.localplayer:GetMoveType() != MOVETYPE_LADDER and Meiware.localplayer:GetMoveType() != MOVETYPE_NOCLIP then
+		cmd:SetForwardMove(5850 / Meiware.localplayer:GetVelocity():Length2D())
 
 		if cmd:CommandNumber() % 2 == 0 then
-			cmd:SetSideMove(-LocalPlayer():GetVelocity():Length2D())
+			cmd:SetSideMove(-Meiware.localplayer:GetVelocity():Length2D())
 		elseif cmd:CommandNumber() % 2 != 0 then
-			cmd:SetSideMove(LocalPlayer():GetVelocity():Length2D())
+			cmd:SetSideMove(Meiware.localplayer:GetVelocity():Length2D())
 		end
 	end
 end
@@ -397,7 +402,7 @@ end
 function Meiware.Autohop(cmd)
 	if !Meiware.movement.autohop[2] then return end
 
-	if cmd:KeyDown(IN_JUMP) and !LocalPlayer():IsOnGround() and LocalPlayer():GetMoveType() != MOVETYPE_LADDER and LocalPlayer():GetMoveType() != MOVETYPE_NOCLIP then
+	if cmd:KeyDown(IN_JUMP) and !Meiware.localplayer:IsOnGround() and Meiware.localplayer:GetMoveType() != MOVETYPE_LADDER and Meiware.localplayer:GetMoveType() != MOVETYPE_NOCLIP then
 		cmd:RemoveKey(IN_JUMP)
 	end
 end
