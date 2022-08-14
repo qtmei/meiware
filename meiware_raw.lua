@@ -72,32 +72,6 @@ surface.SetFont("Default")
 /*
 	[aim]
 */
-function Meiware.Normalize(ang)
-	while ang.p > 180 do
-		ang.p = ang.p - 360
-	end
-
-	while ang.p < -180 do
-		ang.p = ang.p + 360
-	end
-
-	while ang.y > 180 do
-		ang.y = ang.y - 360
-	end
-
-	while ang.y < -180 do
-		ang.y = ang.y + 360
-	end
-
-	while ang.r > 180 do
-		ang.r = ang.r - 360
-	end
-
-	while ang.r < -180 do
-		ang.r = ang.r + 360
-	end
-end
-
 function Meiware.Clamp(ang)
 	if ang.p > 89 then
 		ang.p = 89
@@ -164,7 +138,7 @@ function Meiware.TargetFinder(cmd)
 			if Meiware.IsEntVisibleFromVec(v, vec) then
 				local ang = (vec - LocalPlayer():EyePos()):Angle()
 
-				Meiware.Normalize(ang)
+				ang:Normalize()
 				Meiware.Clamp(ang)
 
 				local fov = math.abs(math.NormalizeAngle(Meiware.false_ang.y - ang.y)) + math.abs(math.NormalizeAngle(Meiware.false_ang.p - ang.p))
@@ -210,7 +184,7 @@ function Meiware.MovementFix(cmd)
 	if Meiware.aim.aimbot[2] then
 		local temp_false_ang = Meiware.false_ang + Angle(cmd:GetMouseY() * GetConVar("m_pitch"):GetFloat(), -cmd:GetMouseX() * GetConVar("m_yaw"):GetFloat(), 0)
 
-		Meiware.Normalize(temp_false_ang)
+		ang:Normalize()
 		Meiware.Clamp(temp_false_ang)
 
 		Meiware.false_ang = temp_false_ang
