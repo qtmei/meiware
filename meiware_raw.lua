@@ -2,7 +2,7 @@
 	[Header]
 */
 local Meiware = {
-	build_info = "2022-08-13 @ 19:20 UTC",
+	build_info = "2022-08-14 @ 00:10 UTC",
 
 	color = Color(0, 255, 0),
 	menu_key = KEY_INSERT,
@@ -64,33 +64,10 @@ local Meiware = {
 	target_ang = Angle(0, 0, 0),
 	target_fov = 360,
 
-	firing = false,
-	attack_override = false,
-	reloading = false,
-
-	curtime = 0,
-
-	["old render.Capture"] = render.Capture,
-	["old render.CapturePixels"] = render.CapturePixels
+	curtime = 0
 }
 
 surface.SetFont("Default")
-
-render.Capture = function(captureData)
-	Meiware.Terminate()
-
-	timer.Simple(1, function() Meiware.Initiate() end)
-
-	return Meiware["old render.Capture"](captureData)
-end
-
-render.CapturePixels = function()
-	Meiware.Terminate()
-
-	timer.Simple(1, function() Meiware.Initiate() end)
-
-	return Meiware["old render.CapturePixels"]
-end
 
 /*
 	[aim]
@@ -161,34 +138,6 @@ function Meiware.MultiPoint(ent, hitbox)
 	return vec + offset
 end
 
-function Meiware.Attack(cmd, bool, caller)
-	if bool and caller == "aimbot" then
-		Meiware.attack_override = true
-	end
-
-	if !bool and caller == "aimbot" then
-		Meiware.attack_override = false
-	end
-
-	if caller == "triggerbot" and Meiware.attack_override then return end
-
-	if bool then
-		if Meiware.firing then
-			cmd:AddKey(IN_ATTACK)
-		else
-			cmd:RemoveKey(IN_ATTACK)
-		end
-
-		Meiware.firing = !Meiware.firing
-	else
-		if Meiware.firing then
-			cmd:RemoveKey(IN_ATTACK)
-
-			Meiware.firing = false
-		end
-	end
-end
-
 function Meiware.InvertColor(col)
 	return Color(255 - col.r, 255 - col.g, 255 - col.b)
 end
@@ -241,12 +190,9 @@ function Meiware.Aimbot(cmd)
 
 	if Meiware.IsValidTarget(Meiware.target) and Meiware.CanFire() and !input.IsMouseDown(MOUSE_LEFT) and (Meiware.aim.ignorefov[2] or (input.IsButtonDown(Meiware.aimtrig_key) and Meiware.target_fov <= Meiware.aimbot_fov)) then
 		cmd:SetViewAngles(Meiware.target_ang)
-
-		Meiware.Attack(cmd, true, "aimbot")
+		cmd:AddKey(IN_ATTACK)
 	else
 		cmd:SetViewAngles(Meiware.false_ang)
-
-		Meiware.Attack(cmd, false, "aimbot")
 	end
 end
 
@@ -256,9 +202,7 @@ function Meiware.Triggerbot(cmd)
 	local trace = util.TraceLine({mask = MASK_SHOT, start = LocalPlayer():EyePos(), endpos = LocalPlayer():EyePos() + cmd:GetViewAngles():Forward() * 32768, filter = LocalPlayer()})
 
 	if Meiware.IsValidTarget(trace.Entity) and Meiware.CanFire() and (Meiware.aim.ignorefov[2] or input.IsButtonDown(Meiware.aimtrig_key)) then
-		Meiware.Attack(cmd, true, "triggerbot")
-	else
-		Meiware.Attack(cmd, false, "triggerbot")
+		cmd:AddKey(IN_ATTACK)
 	end
 end
 
@@ -332,27 +276,7 @@ function Meiware.AutoReload(cmd)
 		if LocalPlayer():GetActiveWeapon().Primary then
 			if LocalPlayer():GetActiveWeapon():Clip1() == 0 and LocalPlayer():GetActiveWeapon():GetMaxClip1() > 0 then
 				cmd:AddKey(IN_RELOAD)
-
-				Meiware.reloading = true
-			else
-				if Meiware.reloading then
-					cmd:RemoveKey(IN_RELOAD)
-
-					Meiware.reloading = false
-				end
 			end
-		else
-			if Meiware.reloading then
-				cmd:RemoveKey(IN_RELOAD)
-
-				Meiware.reloading = false
-			end
-		end
-	else
-		if Meiware.reloading then
-			cmd:RemoveKey(IN_RELOAD)
-
-			Meiware.reloading = false
 		end
 	end
 end
@@ -803,34 +727,10 @@ function Meiware.Move()
 	Meiware.CurTimeFix()
 end
 
-function Meiware.Initiate()
-	print("[Meiware] initiating...")
-
-	hook.Add("CreateMove", "MeiwareCreateMove", Meiware.CreateMove)
-	hook.Add("CalcView", "MeiwareCalcView", Meiware.CalcView)
-	hook.Add("CalcViewModelView", "MeiwareCalcViewModelView", Meiware.CalcViewModelView)
-	hook.Add("PostDrawOpaqueRenderables", "MeiwarePostDrawOpaqueRenderables", Meiware.PostDrawOpaqueRenderables)
-	hook.Add("HUDPaint", "MeiwareHUDPaint", Meiware.HUDPaint)
-	hook.Add("Think", "MeiwareThink", Meiware.Think)
-	hook.Add("Move", "MeiwareMove", Meiware.Move)
-
-	print("[Meiware] initiated.")
-end
-
-function Meiware.Terminate()
-	print("[Meiware] terminating...")
-
-	Meiware.frame:SetVisible(false)
-
-	hook.Remove("CreateMove", "MeiwareCreateMove")
-	hook.Remove("CalcView", "MeiwareCalcView")
-	hook.Remove("CalcViewModelView", "MeiwareCalcViewModelView")
-	hook.Remove("PostDrawOpaqueRenderables", "MeiwarePostDrawOpaqueRenderables")
-	hook.Remove("HUDPaint", "MeiwareHUDPaint")
-	hook.Remove("Think", "MeiwareThink")
-	hook.Remove("Move", "MeiwareMove")
-
-	print("[Meiware] terminated.")
-end
-
-Meiware.Initiate()
+hook.Add("CreateMove", "MeiwareCreateMove", Meiware.CreateMove)
+hook.Add("CalcView", "MeiwareCalcView", Meiware.CalcView)
+hook.Add("CalcViewModelView", "MeiwareCalcViewModelView", Meiware.CalcViewModelView)
+hook.Add("PostDrawOpaqueRenderables", "MeiwarePostDrawOpaqueRenderables", Meiware.PostDrawOpaqueRenderables)
+hook.Add("HUDPaint", "MeiwareHUDPaint", Meiware.HUDPaint)
+hook.Add("Think", "MeiwareThink", Meiware.Think)
+hook.Add("Move", "MeiwareMove", Meiware.Move)
