@@ -184,7 +184,7 @@ function Meiware.MovementFix(cmd)
 	if Meiware.aim.aimbot[2] then
 		local temp_false_ang = Meiware.false_ang + Angle(cmd:GetMouseY() * GetConVar("m_pitch"):GetFloat(), -cmd:GetMouseX() * GetConVar("m_yaw"):GetFloat(), 0)
 
-		ang:Normalize()
+		temp_false_ang:Normalize()
 		Meiware.Clamp(temp_false_ang)
 
 		Meiware.false_ang = temp_false_ang
