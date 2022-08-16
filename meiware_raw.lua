@@ -15,7 +15,6 @@ local Meiware = {
 		aimbot = {"aimbot", true},
 		ignoreteam = {"ignore team check?", true},
 		ignorefov = {"ignore fov check?", false},
-		ignorenpc = {"ignore NPC check?", false},
 		triggerbot = {"triggerbot", true},
 		autoreload = {"auto reload", true}
 	},
@@ -32,10 +31,11 @@ local Meiware = {
 	},
 
 	hitboxlist = {"head"},
+	playerlist = {},
 	entitylist = {},
 
 	hitboxes = {
-		["head"] = 0,	
+		["head"] = 0,
 		["L arm"] = 1,
 		["L forearm"] = 2,
 		["L hand"] = 3,
@@ -45,25 +45,23 @@ local Meiware = {
 		["L thigh"] = 7,
 		["L calf"] = 8,
 		["L foot"] = 9,
-		["L toe"] = 10,
+		["L toes"] = 10,
 		["R thigh"] = 11,
 		["R calf"] = 12,
 		["R foot"] = 13,
-		["R toe"] = 14,
+		["R toes"] = 14,
 		["pelvis"] = 15,
 		["spine"] = 16
 	},
 
-	frame = nil,
+	menu = false,
+
 	localplayer = LocalPlayer(),
 
 	false_ang = EyeAngles(),
 	false_vec = EyePos(),
 
 	target = nil,
-	target_vec = Vector(0, 0, 0),
-	target_ang = Angle(0, 0, 0),
-	target_fov = 360,
 
 	curtime = 0
 }
@@ -84,9 +82,8 @@ end
 function Meiware.IsValidTarget(ent)
 	if !IsValid(ent) then return false end
 	if ent:IsEffectActive(EF_NODRAW) or ent:GetRenderMode() == RENDERMODE_NONE or ent:GetRenderMode() == RENDERMODE_TRANSCOLOR or ent:GetColor().a == 0 then return false end
-	if Meiware.aim.ignorenpc[2] and ent:IsNPC() then return true end
 
-	return ent != Meiware.localplayer and ent:IsPlayer() and ent:Alive() and ent:Team() != TEAM_SPECTATOR and !ent:IsDormant() and (Meiware.aim.ignoreteam[2] or ent:Team() != Meiware.localplayer:Team())
+	return ent != Meiware.localplayer and ent:IsPlayer() and ent:Alive() and ent:Team() != TEAM_SPECTATOR and !ent:IsDormant() and (Meiware.aim.ignoreteam[2] or ent:Team() != Meiware.localplayer:Team()) and table.HasValue(Meiware.playerlist, ent)
 end
 
 function Meiware.IsEntVisibleFromVec(ent, vec)
@@ -104,7 +101,7 @@ function Meiware.CanFire()
 end
 
 function Meiware.MultiPoint(ent, hitbox)
-	if !isnumber(ent:GetHitBoxBone(hitbox, 0)) then return ent:WorldSpaceCenter() + Vector(math.Rand(-1, 1), math.Rand(-1, 1), math.Rand(-1, 1)) end
+	if !isnumber(ent:GetHitBoxBone(hitbox, 0)) then return ent:EyePos() + Vector(math.Rand(-1, 1), math.Rand(-1, 1), math.Rand(-1, 1)) end
 
 	local vec, ang = ent:GetBonePosition(ent:GetHitBoxBone(hitbox, 0))
 	local min, max = ent:GetHitBoxBounds(hitbox, 0)
@@ -119,6 +116,10 @@ function Meiware.InvertColor(col)
 	return Color(255 - col.r, 255 - col.g, 255 - col.b)
 end
 
+function Meiware.HitboxPriority(tbl)
+	return table.HasValue(tbl, Meiware.hitboxes["head"]) and Meiware.hitboxes["head"] or table.HasValue(tbl, Meiware.hitboxes["spine"]) and Meiware.hitboxes["spine"] or table.HasValue(tbl, Meiware.hitboxes["pelvis"]) and Meiware.hitboxes["pelvis"] or table.HasValue(tbl, Meiware.hitboxes["L thigh"]) and Meiware.hitboxes["L thigh"] or table.HasValue(tbl, Meiware.hitboxes["R thigh"]) and Meiware.hitboxes["R thigh"] or table.HasValue(tbl, Meiware.hitboxes["L arm"]) and Meiware.hitboxes["L arm"] or table.HasValue(tbl, Meiware.hitboxes["R arm"]) and Meiware.hitboxes["R arm"]  or table.HasValue(tbl, Meiware.hitboxes["L calf"]) and Meiware.hitboxes["L calf"] or table.HasValue(tbl, Meiware.hitboxes["R calf"]) and Meiware.hitboxes["R calf"] or table.HasValue(tbl, Meiware.hitboxes["L forearm"]) and Meiware.hitboxes["L forearm"] or table.HasValue(tbl, Meiware.hitboxes["R forearm"]) and Meiware.hitboxes["R forearm"] or table.HasValue(tbl, Meiware.hitboxes["L foot"]) and Meiware.hitboxes["L foot"] or table.HasValue(tbl, Meiware.hitboxes["R foot"]) and Meiware.hitboxes["R foot"] or table.HasValue(tbl, Meiware.hitboxes["L hand"]) and Meiware.hitboxes["L hand"] or table.HasValue(tbl, Meiware.hitboxes["R hand"]) and Meiware.hitboxes["R hand"] or table.HasValue(tbl, Meiware.hitboxes["L toes"]) and Meiware.hitboxes["L toes"] or table.HasValue(tbl, Meiware.hitboxes["R toes"]) and Meiware.hitboxes["R toes"] or ""
+end
+
 function Meiware.CurTimeFix()
 	if !IsFirstTimePredicted() then return end
 
@@ -128,17 +129,26 @@ end
 function Meiware.TargetFinder(cmd)
 	if !Meiware.aim.aimbot[2] then return end
 
-	local closest_target = nil
-	local closest_target_vec = Vector(0, 0, 0)
-	local closest_target_ang = Angle(0, 0, 0)
-	local closest_target_fov = 360
+	local closest_target = {}
+	closest_target.fov = 360
 
-	for k, v in pairs(ents.GetAll()) do
+	for k, v in pairs(Meiware.playerlist) do
 		if Meiware.IsValidTarget(v) then
-			local hitbox = Meiware.hitboxes[table.Random(Meiware.hitboxlist)]
-			local vec = Meiware.MultiPoint(v, hitbox)
+			local visible_hitboxes = {}
+			local visible_vecs = {}
 
-			if Meiware.IsEntVisibleFromVec(v, vec) then
+			for k2, v2 in pairs(Meiware.hitboxlist) do
+				local hitbox = Meiware.hitboxes[v2]
+				local vec = Meiware.MultiPoint(v, hitbox)
+
+				if Meiware.IsEntVisibleFromVec(v, vec) then
+					table.insert(visible_hitboxes, hitbox)
+					table.insert(visible_vecs, hitbox, vec)
+				end
+			end
+
+			if !table.IsEmpty(visible_vecs) then
+				local vec = visible_vecs[Meiware.HitboxPriority(visible_hitboxes)]
 				local ang = (vec - Meiware.localplayer:EyePos()):Angle()
 
 				ang:Normalize()
@@ -146,27 +156,23 @@ function Meiware.TargetFinder(cmd)
 
 				local fov = math.abs(math.NormalizeAngle(Meiware.false_ang.y - ang.y)) + math.abs(math.NormalizeAngle(Meiware.false_ang.p - ang.p))
 
-				if fov < closest_target_fov then
+				if fov < closest_target.fov then
 					closest_target = v
-					closest_target_vec = vec
-					closest_target_ang = ang
-					closest_target_fov = fov
+					closest_target.ang = ang
+					closest_target.fov = fov
 				end
 			end
 		end
 	end
 
 	Meiware.target = closest_target
-	Meiware.target_vec = closest_target_vec
-	Meiware.target_ang = closest_target_ang
-	Meiware.target_fov = closest_target_fov
 end
 
 function Meiware.Aimbot(cmd)
 	if !Meiware.aim.aimbot[2] then return end
 
-	if Meiware.IsValidTarget(Meiware.target) and Meiware.CanFire() and !input.IsMouseDown(MOUSE_LEFT) and (Meiware.aim.ignorefov[2] or (input.IsButtonDown(Meiware.aimtrig_key) and Meiware.target_fov <= Meiware.aimbot_fov)) then
-		cmd:SetViewAngles(Meiware.target_ang)
+	if Meiware.IsValidTarget(Meiware.target) and Meiware.CanFire() and !input.IsMouseDown(MOUSE_LEFT) and (Meiware.aim.ignorefov[2] or (input.IsButtonDown(Meiware.aimtrig_key) and Meiware.target.fov <= Meiware.aimbot_fov)) then
+		cmd:SetViewAngles(Meiware.target.ang)
 		cmd:AddKey(IN_ATTACK)
 	else
 		cmd:SetViewAngles(Meiware.false_ang)
@@ -281,12 +287,14 @@ function Meiware.Wallhack()
 	render.SetStencilCompareFunction(STENCIL_ALWAYS)
 	render.SetStencilZFailOperation(STENCIL_REPLACE)
 
-	for k, v in pairs(ents.GetAll()) do
+	for k, v in pairs(Meiware.playerlist) do
 		if Meiware.IsValidTarget(v) then
 			v:DrawModel()
 
-			if IsValid(v:GetActiveWeapon()) then
-				v:GetActiveWeapon():DrawModel()
+			local wep = v:GetActiveWeapon()
+
+			if IsValid(wep) then
+				wep:DrawModel()
 			end
 		end
 	end
@@ -314,12 +322,14 @@ function Meiware.Wallhack()
 	render.SetStencilReferenceValue(2)
 	render.SetStencilWriteMask(2)
 
-	for k, v in pairs(ents.GetAll()) do
+	for k, v in pairs(Meiware.playerlist) do
 		if Meiware.IsValidTarget(v) then
 			v:DrawModel()
 
-			if IsValid(v:GetActiveWeapon()) then
-				v:GetActiveWeapon():DrawModel()
+			local wep = v:GetActiveWeapon()
+
+			if IsValid(wep) then
+				wep:DrawModel()
 			end
 		end
 	end
@@ -336,7 +346,7 @@ function Meiware.ESP()
 	surface.SetFont("Default")
 
 	for k, v in pairs(ents.GetAll()) do
-		if Meiware.IsValidTarget(v) and !v:IsNPC() then
+		if Meiware.IsValidTarget(v) then
 			local length = 6 + select(1, surface.GetTextSize(v:Name())) + 6
 			local height = 24
 			local x = v:GetPos():ToScreen().x - (length / 2)
@@ -410,218 +420,191 @@ end
 /*
 	[menu]
 */
-Meiware.frame = vgui.Create("DFrame")
-Meiware.frame.size = Vector(600, 400, 0)
-Meiware.frame.index = 36
-Meiware.frame:SetVisible(false)
-Meiware.frame:SetTitle("Meiware " .. Meiware.build_info)
-Meiware.frame:SetPos(ScrW() / 2 - (Meiware.frame.size.x / 2), ScrH() / 2 - (Meiware.frame.size.y / 2))
-Meiware.frame:SetSize(Meiware.frame.size.x, Meiware.frame.size.y)
-Meiware.frame:SetDraggable(true)
-Meiware.frame:ShowCloseButton(false)
-Meiware.frame:MakePopup()
+function Meiware.Menu()
+	Meiware.menu = true
 
-function Meiware.frame:Paint(w, h)
-	surface.SetDrawColor(Color(36, 36, 36, 225))
-	surface.DrawRect(0, 0, w, h)
-	surface.SetDrawColor(Meiware.color)
-	surface.DrawOutlinedRect(0, 0, w, h)
-end
+	surface.SetFont("Default")
 
-Meiware.frame.lblTitle.UpdateColours = function(label, skin)
-	label:SetTextStyleColor(Meiware.color)
-end
+	frame = vgui.Create("DFrame")
+	frame.size = Vector(600, 400, 0)
+	frame.index = 36
+	frame:SetVisible(true)
+	frame:SetTitle("Meiware " .. Meiware.build_info)
+	frame:SetPos(ScrW() / 2 - (frame.size.x / 2), ScrH() / 2 - (frame.size.y / 2))
+	frame:SetSize(frame.size.x, frame.size.y)
+	frame:SetDraggable(true)
+	frame:ShowCloseButton(false)
+	frame:MakePopup()
 
-Meiware.frame.exit = vgui.Create("DButton", Meiware.frame)
-Meiware.frame.exit:SetPos(Meiware.frame.size.x - 30, 6)
-Meiware.frame.exit:SetSize(24, 24)
-Meiware.frame.exit:SetText("")
-Meiware.frame.exit:SetColor(Meiware.color)
-
-Meiware.frame.exit.DoClick = function()
-	Meiware.frame:SetVisible(false)
-
-	surface.PlaySound("ambient/levels/canals/drip4.wav")
-end
-
-function Meiware.frame.exit:Paint(w, h)
-	surface.SetDrawColor(Meiware.color)
-	surface.DrawOutlinedRect(0, 0, w, h)
-	surface.DrawLine(8, 8, 15, 15)
-	surface.DrawLine(15, 8, 8, 15)
-end
-
-Meiware.frame.scrollpanels = {}
-
-Meiware.frame.AddTab = function(text)
-	local scrollpanel = vgui.Create("DScrollPanel", Meiware.frame)
-	scrollpanel.index = 6
-	scrollpanel:SetSize(Meiware.frame.size.x - 6 - 72 - 6 - 6, Meiware.frame.size.y - 6 - 24 - 6 - 6)
-	scrollpanel:SetPos(6 + 72 + 6, 6 + 24 + 6)
-	scrollpanel:SetVisible(false)
-
-	function scrollpanel:Paint(w, h)
+	function frame:Paint(w, h)
+		surface.SetDrawColor(Color(36, 36, 36, 225))
+		surface.DrawRect(0, 0, w, h)
 		surface.SetDrawColor(Meiware.color)
 		surface.DrawOutlinedRect(0, 0, w, h)
 	end
 
-	local vbar = scrollpanel:GetVBar()
-
-	function vbar:Paint(w, h)
-		surface.SetDrawColor(Meiware.color)
-		surface.DrawOutlinedRect(0, 0, w, h)
-	end
-	function vbar.btnUp:Paint(w, h)
-		surface.SetDrawColor(Meiware.color)
-		surface.DrawOutlinedRect(0, 0, w, h)
-	end
-	function vbar.btnDown:Paint(w, h)
-		surface.SetDrawColor(Meiware.color)
-		surface.DrawOutlinedRect(0, 0, w, h)
-	end
-	function vbar.btnGrip:Paint(w, h)
-		surface.SetDrawColor(Meiware.color)
-		surface.DrawOutlinedRect(0, 0, w, h)
+	frame.lblTitle.UpdateColours = function(label, skin)
+		label:SetTextStyleColor(Meiware.color)
 	end
 
-	scrollpanel.AddToggle = function(var)
-		local label = vgui.Create("DLabel", scrollpanel)
-		label:SetText(var[1])
-		label:SetWide(select(1, surface.GetTextSize(var[1])))
-		label:SetPos(6, scrollpanel.index)
-		label:SetTextColor(Meiware.color)
+	frame.exit = vgui.Create("DButton", frame)
+	frame.exit:SetPos(frame.size.x - 30, 6)
+	frame.exit:SetSize(24, 24)
+	frame.exit:SetText("")
+	frame.exit:SetColor(Meiware.color)
 
-		local button = vgui.Create("DButton", scrollpanel)
-		button:SetText("")
-		button:SetSize(24, 24)
-		button:SetPos(6 + select(1, surface.GetTextSize(var[1])) + 6, scrollpanel.index)
+	frame.exit.DoClick = function()
+		frame:Close()
+		Meiware.menu = false
+
+		surface.PlaySound("ambient/levels/canals/drip4.wav")
+	end
+
+	function frame.exit:Paint(w, h)
+		surface.SetDrawColor(Meiware.color)
+		surface.DrawOutlinedRect(0, 0, w, h)
+		surface.DrawLine(8, 8, 15, 15)
+		surface.DrawLine(15, 8, 8, 15)
+	end
+
+	frame.scrollpanels = {}
+
+	frame.AddTab = function(text)
+		local scrollpanel = vgui.Create("DScrollPanel", frame)
+		scrollpanel.index = 6
+		scrollpanel:SetSize(frame.size.x - 6 - 72 - 6 - 6, frame.size.y - 6 - 24 - 6 - 6)
+		scrollpanel:SetPos(6 + 72 + 6, 6 + 24 + 6)
+		scrollpanel:SetVisible(false)
+
+		function scrollpanel:Paint(w, h)
+			surface.SetDrawColor(Meiware.color)
+			surface.DrawOutlinedRect(0, 0, w, h)
+		end
+
+		local vbar = scrollpanel:GetVBar()
+
+		function vbar:Paint(w, h)
+			surface.SetDrawColor(Meiware.color)
+			surface.DrawOutlinedRect(0, 0, w, h)
+		end
+		function vbar.btnUp:Paint(w, h)
+			surface.SetDrawColor(Meiware.color)
+			surface.DrawOutlinedRect(0, 0, w, h)
+		end
+		function vbar.btnDown:Paint(w, h)
+			surface.SetDrawColor(Meiware.color)
+			surface.DrawOutlinedRect(0, 0, w, h)
+		end
+		function vbar.btnGrip:Paint(w, h)
+			surface.SetDrawColor(Meiware.color)
+			surface.DrawOutlinedRect(0, 0, w, h)
+		end
+
+		scrollpanel.AddToggle = function(var)
+			local label = vgui.Create("DLabel", scrollpanel)
+			label:SetText(var[1])
+			label:SetWide(select(1, surface.GetTextSize(var[1])))
+			label:SetPos(6, scrollpanel.index)
+			label:SetTextColor(Meiware.color)
+
+			local button = vgui.Create("DButton", scrollpanel)
+			button:SetText("")
+			button:SetSize(24, 24)
+			button:SetPos(6 + select(1, surface.GetTextSize(var[1])) + 6, scrollpanel.index)
+
+			button.DoClick = function()
+				var[2] = !var[2]
+
+				surface.PlaySound("ambient/levels/canals/drip4.wav")
+			end
+
+			function button:Paint(w, h)
+				if var[2] then
+					surface.SetDrawColor(Meiware.color)
+					surface.DrawRect(0, 0, w, h)
+				else
+					surface.SetDrawColor(Meiware.color)
+					surface.DrawOutlinedRect(0, 0, w, h)
+				end
+			end
+
+			scrollpanel.index = scrollpanel.index + 30
+		end
+
+		table.insert(frame.scrollpanels, scrollpanel)
+
+		local button = vgui.Create("DButton", frame)
+		button:SetText(text)
+		button:SetSize(72, 48)
+		button:SetPos(6, frame.index)
+		button:SetTextColor(Meiware.color)
 
 		button.DoClick = function()
-			var[2] = !var[2]
+			for k, v in pairs(frame.scrollpanels) do
+				v:SetVisible(false)
+			end
+
+			scrollpanel:SetVisible(true)
 
 			surface.PlaySound("ambient/levels/canals/drip4.wav")
 		end
 
 		function button:Paint(w, h)
-			if var[2] then
+			if scrollpanel:IsVisible() then
 				surface.SetDrawColor(Meiware.color)
 				surface.DrawRect(0, 0, w, h)
+
+				button:SetTextColor(Meiware.InvertColor(Meiware.color))
 			else
 				surface.SetDrawColor(Meiware.color)
 				surface.DrawOutlinedRect(0, 0, w, h)
+
+				button:SetTextColor(Meiware.color)
 			end
 		end
 
-		scrollpanel.index = scrollpanel.index + 30
+		frame.index = frame.index + 54
+
+		return scrollpanel
 	end
 
-	table.insert(Meiware.frame.scrollpanels, scrollpanel)
+	local tab_aim = frame.AddTab("aim")
+	local tab_visuals = frame.AddTab("visuals")
+	local tab_movement = frame.AddTab("movement")
+	local tab_hitboxlist = frame.AddTab("hitboxes")
+	local tab_playerlist = frame.AddTab("players")
+	local tab_entitylist = frame.AddTab("entities")
 
-	local button = vgui.Create("DButton", Meiware.frame)
-	button:SetText(text)
-	button:SetSize(72, 48)
-	button:SetPos(6, Meiware.frame.index)
-	button:SetTextColor(Meiware.color)
+	tab_aim:SetVisible(true)
 
-	button.DoClick = function()
-		for k, v in pairs(Meiware.frame.scrollpanels) do
-			v:SetVisible(false)
-		end
-
-		scrollpanel:SetVisible(true)
-
-		surface.PlaySound("ambient/levels/canals/drip4.wav")
+	for k, v in pairs(Meiware.aim) do
+		tab_aim.AddToggle(v)
 	end
 
-	function button:Paint(w, h)
-		if scrollpanel:IsVisible() then
-			surface.SetDrawColor(Meiware.color)
-			surface.DrawRect(0, 0, w, h)
-
-			button:SetTextColor(Meiware.InvertColor(Meiware.color))
-		else
-			surface.SetDrawColor(Meiware.color)
-			surface.DrawOutlinedRect(0, 0, w, h)
-
-			button:SetTextColor(Meiware.color)
-		end
+	for k, v in pairs(Meiware.visuals) do
+		tab_visuals.AddToggle(v)
 	end
 
-	Meiware.frame.index = Meiware.frame.index + 54
-
-	return scrollpanel
-end
-
-local tab_aim = Meiware.frame.AddTab("aim")
-local tab_visuals = Meiware.frame.AddTab("visuals")
-local tab_movement = Meiware.frame.AddTab("movement")
-local tab_hitboxlist = Meiware.frame.AddTab("hitboxes")
-local tab_entitylist = Meiware.frame.AddTab("entities")
-
-tab_aim:SetVisible(true)
-
-for k, v in pairs(Meiware.aim) do
-	tab_aim.AddToggle(v)
-end
-
-for k, v in pairs(Meiware.visuals) do
-	tab_visuals.AddToggle(v)
-end
-
-for k, v in pairs(Meiware.movement) do
-	tab_movement.AddToggle(v)
-end
-
-for k, v in pairs({"head", "L arm", "L forearm", "L hand", "R arm", "R forearm", "R hand", "L thigh", "L calf", "L foot", "L toe", "R thigh", "R calf", "R foot", "R toe", "pelvis", "spine"}) do
-	local button = vgui.Create("DButton", tab_hitboxlist)
-	button:SetPos(6, tab_hitboxlist.index)
-	button:SetSize(Meiware.frame.size.x - 6 - 72 - 6 - 6 - 6 - 18, 24)
-	button:SetText(v)
-
-	button.DoClick = function()
-		if table.HasValue(Meiware.hitboxlist, v) then
-			table.RemoveByValue(Meiware.hitboxlist, v)
-		else
-			table.insert(Meiware.hitboxlist, v)
-		end
+	for k, v in pairs(Meiware.movement) do
+		tab_movement.AddToggle(v)
 	end
 
-	function button:Paint(w, h)
-		if table.HasValue(Meiware.hitboxlist, v) then
-			surface.SetDrawColor(Meiware.color)
-			surface.DrawOutlinedRect(0, 0, w, h)
-			button:SetColor(Meiware.color)
-		else
-			surface.SetDrawColor(Meiware.InvertColor(Meiware.color))
-			surface.DrawOutlinedRect(0, 0, w, h)
-			button:SetColor(Meiware.InvertColor(Meiware.color))
-		end
-	end
-
-	tab_hitboxlist.index = tab_hitboxlist.index + 30
-end
-
-local entitylist = {}
-
-for k, v in pairs(ents.GetAll()) do
-	if IsValid(v) and !table.HasValue(entitylist, v:GetClass()) then
-		table.insert(entitylist, v:GetClass())
-
-		local button = vgui.Create("DButton", tab_entitylist)
-		button:SetPos(6, tab_entitylist.index)
-		button:SetSize(Meiware.frame.size.x - 6 - 72 - 6 - 6 - 6 - 18, 24)
-		button:SetText(v:GetClass())
+	for k, v in pairs({"head", "L arm", "L forearm", "L hand", "R arm", "R forearm", "R hand", "L thigh", "L calf", "L foot", "L toes", "R thigh", "R calf", "R foot", "R toes", "pelvis", "spine"}) do
+		local button = vgui.Create("DButton", tab_hitboxlist)
+		button:SetPos(6, tab_hitboxlist.index)
+		button:SetSize(frame.size.x - 6 - 72 - 6 - 6 - 6 - 18, 24)
+		button:SetText(v)
 
 		button.DoClick = function()
-			if table.HasValue(Meiware.entitylist, button:GetText()) then
-				table.RemoveByValue(Meiware.entitylist, button:GetText())
+			if table.HasValue(Meiware.hitboxlist, v) then
+				table.RemoveByValue(Meiware.hitboxlist, v)
 			else
-				table.insert(Meiware.entitylist, button:GetText())
+				table.insert(Meiware.hitboxlist, v)
 			end
 		end
 
 		function button:Paint(w, h)
-			if table.HasValue(Meiware.entitylist, button:GetText()) then
+			if table.HasValue(Meiware.hitboxlist, v) then
 				surface.SetDrawColor(Meiware.color)
 				surface.DrawOutlinedRect(0, 0, w, h)
 				button:SetColor(Meiware.color)
@@ -632,13 +615,79 @@ for k, v in pairs(ents.GetAll()) do
 			end
 		end
 
-		tab_entitylist.index = tab_entitylist.index + 30
+		tab_hitboxlist.index = tab_hitboxlist.index + 30
+	end
+
+	for k, v in pairs(player.GetAll()) do
+		if v != Meiware.localplayer then
+			local button = vgui.Create("DButton", tab_playerlist)
+			button:SetPos(6, tab_playerlist.index)
+			button:SetSize(frame.size.x - 6 - 72 - 6 - 6 - 6 - 18, 24)
+			button:SetText("[" .. v:SteamID() .. "] " .. v:Name())
+
+			button.DoClick = function()
+				if table.HasValue(Meiware.playerlist, v) then
+					table.RemoveByValue(Meiware.playerlist, v)
+				else
+					table.insert(Meiware.playerlist, v)
+				end
+			end
+
+			function button:Paint(w, h)
+				if table.HasValue(Meiware.playerlist, v) then
+					surface.SetDrawColor(Meiware.color)
+					surface.DrawOutlinedRect(0, 0, w, h)
+					button:SetColor(Meiware.color)
+				else
+					surface.SetDrawColor(Meiware.InvertColor(Meiware.color))
+					surface.DrawOutlinedRect(0, 0, w, h)
+					button:SetColor(Meiware.InvertColor(Meiware.color))
+				end
+			end
+
+			tab_playerlist.index = tab_playerlist.index + 30
+		end
+	end
+
+	local entitylist = {}
+
+	for k, v in pairs(ents.GetAll()) do
+		if IsValid(v) and !table.HasValue(entitylist, v:GetClass()) then
+			table.insert(entitylist, v:GetClass())
+
+			local button = vgui.Create("DButton", tab_entitylist)
+			button:SetPos(6, tab_entitylist.index)
+			button:SetSize(frame.size.x - 6 - 72 - 6 - 6 - 6 - 18, 24)
+			button:SetText(v:GetClass())
+
+			button.DoClick = function()
+				if table.HasValue(Meiware.entitylist, button:GetText()) then
+					table.RemoveByValue(Meiware.entitylist, button:GetText())
+				else
+					table.insert(Meiware.entitylist, button:GetText())
+				end
+			end
+
+			function button:Paint(w, h)
+				if table.HasValue(Meiware.entitylist, button:GetText()) then
+					surface.SetDrawColor(Meiware.color)
+					surface.DrawOutlinedRect(0, 0, w, h)
+					button:SetColor(Meiware.color)
+				else
+					surface.SetDrawColor(Meiware.InvertColor(Meiware.color))
+					surface.DrawOutlinedRect(0, 0, w, h)
+					button:SetColor(Meiware.InvertColor(Meiware.color))
+				end
+			end
+
+			tab_entitylist.index = tab_entitylist.index + 30
+		end
 	end
 end
 
 function Meiware.MenuKeyListener()
-	if input.IsButtonDown(Meiware.menu_key) then
-		Meiware.frame:SetVisible(true)
+	if input.IsButtonDown(Meiware.menu_key) and !Meiware.menu then
+		Meiware.Menu()
 	end
 end
 
