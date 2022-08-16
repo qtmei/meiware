@@ -2,7 +2,7 @@
 	[Header]
 */
 local Meiware = {
-	build_info = "2022-08-14 @ 00:10 UTC",
+	build_info = "2022-08-16 @ 22:41 UTC",
 
 	color = Color(0, 255, 0),
 	menu_key = KEY_INSERT,
