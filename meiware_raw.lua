@@ -2,7 +2,7 @@
 	[Header]
 */
 local Meiware = {
-	build_info = "2022-08-16 @ 22:41 UTC",
+	build_info = "2022-08-18 @ 01:26 UTC",
 
 	color = Color(0, 255, 0),
 	menu_key = KEY_INSERT,
@@ -30,29 +30,8 @@ local Meiware = {
 		autostrafe = {"auto strafe", true}
 	},
 
-	hitboxlist = {"head"},
 	playerlist = {},
 	entitylist = {},
-
-	hitboxes = {
-		["head"] = 0,
-		["L arm"] = 1,
-		["L forearm"] = 2,
-		["L hand"] = 3,
-		["R arm"] = 4,
-		["R forearm"] = 5,
-		["R hand"] = 6,
-		["L thigh"] = 7,
-		["L calf"] = 8,
-		["L foot"] = 9,
-		["L toes"] = 10,
-		["R thigh"] = 11,
-		["R calf"] = 12,
-		["R foot"] = 13,
-		["R toes"] = 14,
-		["pelvis"] = 15,
-		["spine"] = 16
-	},
 
 	menu = false,
 
@@ -63,7 +42,25 @@ local Meiware = {
 
 	target = nil,
 
-	curtime = 0
+	curtime = 0,
+
+	HITBOX_HEAD = 0,
+	HITBOX_L_ARM = 1,
+	HITBOX_L_FOREARM = 2,
+	HITBOX_L_HAND = 3,
+	HITBOX_R_ARM = 4,
+	HITBOX_R_FOREARM = 5,
+	HITBOX_R_HAND = 6,
+	HITBOX_L_THIGH = 7,
+	HITBOX_L_CALF = 8,
+	HITBOX_L_FOOT = 9,
+	HITBOX_L_TOE = 10,
+	HITBOX_R_THIGH = 11,
+	HITBOX_R_CALF = 12,
+	HITBOX_R_FOOT = 13,
+	HITBOX_R_TOE = 14,
+	HITBOX_PELVIS = 15,
+	HITBOX_SPINE = 16
 }
 
 surface.SetFont("Default")
@@ -100,24 +97,38 @@ function Meiware.CanFire()
 	return wep:Clip1() > 0 and wep:GetActivity() != ACT_RELOAD and wep:GetNextPrimaryFire() < Meiware.curtime
 end
 
-function Meiware.MultiPoint(ent, hitbox)
-	if !isnumber(ent:GetHitBoxBone(hitbox, 0)) then return ent:EyePos() + Vector(math.Rand(-1, 1), math.Rand(-1, 1), math.Rand(-1, 1)) end
+function Meiware.HitboxPriority(tbl)
+	return table.HasValue(tbl, Meiware.HITBOX_HEAD) and Meiware.HITBOX_HEAD or table.HasValue(tbl, Meiware.HITBOX_SPINE) and Meiware.HITBOX_SPINE or table.HasValue(tbl, Meiware.HITBOX_PELVIS) and Meiware.HITBOX_PELVIS or table.HasValue(tbl, Meiware.HITBOX_L_THIGH) and Meiware.HITBOX_L_THIGH or table.HasValue(tbl, Meiware.HITBOX_R_THIGH) and Meiware.HITBOX_R_THIGH or table.HasValue(tbl, Meiware.HITBOX_L_ARM) and Meiware.HITBOX_L_ARM or table.HasValue(tbl, Meiware.HITBOX_R_ARM) and Meiware.HITBOX_R_ARM  or table.HasValue(tbl, Meiware.HITBOX_L_CALF) and Meiware.HITBOX_L_CALF or table.HasValue(tbl, Meiware.HITBOX_R_CALF) and Meiware.HITBOX_R_CALF or table.HasValue(tbl, Meiware.HITBOX_L_FOREARM) and Meiware.HITBOX_L_FOREARM or table.HasValue(tbl, Meiware.HITBOX_R_FOREARM) and Meiware.HITBOX_R_FOREARM or table.HasValue(tbl, Meiware.HITBOX_L_FOOT) and Meiware.HITBOX_L_FOOT or table.HasValue(tbl, Meiware.HITBOX_R_FOOT) and Meiware.HITBOX_R_FOOT or table.HasValue(tbl, Meiware.HITBOX_L_HAND) and Meiware.HITBOX_L_HAND or table.HasValue(tbl, Meiware.HITBOX_R_HAND) and Meiware.HITBOX_R_HAND or table.HasValue(tbl, Meiware.HITBOX_L_TOE) and Meiware.HITBOX_L_TOE or table.HasValue(tbl, Meiware.HITBOX_R_TOE) and Meiware.HITBOX_R_TOE or table.Random(tbl)
+end
 
-	local vec, ang = ent:GetBonePosition(ent:GetHitBoxBone(hitbox, 0))
-	local min, max = ent:GetHitBoxBounds(hitbox, 0)
-	local offset = Vector(math.Rand(min.x, max.x), math.Rand(min.y, max.y), math.Rand(min.z, max.z))
+function Meiware.MultiPoint(ent)
+	local visible_hitboxes = {}
+	local visible_vecs = {}
 
-	offset:Rotate(ang)
+	local hitbox_sets = ent:GetHitBoxGroupCount()
 
-	return vec + offset
+	for hitbox_set = 0, hitbox_sets - 1 do
+		local hitboxes = ent:GetHitBoxCount(hitbox_set)
+
+		for hitbox = 0, hitboxes - 1 do
+			local vec, ang = ent:GetBonePosition(ent:GetHitBoxBone(hitbox, hitbox_set))
+			local min, max = ent:GetHitBoxBounds(hitbox, 0)
+			local offset = Vector(math.Rand(min.x, max.x), math.Rand(min.y, max.y), math.Rand(min.z, max.z))
+
+			offset:Rotate(ang)
+
+			if Meiware.IsEntVisibleFromVec(ent, vec) then
+				table.insert(visible_hitboxes, hitbox)
+				table.insert(visible_vecs, hitbox, vec + offset)
+			end
+		end
+	end
+
+	return !table.IsEmpty(visible_vecs) and visible_vecs[Meiware.HitboxPriority(visible_hitboxes)] or nil
 end
 
 function Meiware.InvertColor(col)
 	return Color(255 - col.r, 255 - col.g, 255 - col.b)
-end
-
-function Meiware.HitboxPriority(tbl)
-	return table.HasValue(tbl, Meiware.hitboxes["head"]) and Meiware.hitboxes["head"] or table.HasValue(tbl, Meiware.hitboxes["spine"]) and Meiware.hitboxes["spine"] or table.HasValue(tbl, Meiware.hitboxes["pelvis"]) and Meiware.hitboxes["pelvis"] or table.HasValue(tbl, Meiware.hitboxes["L thigh"]) and Meiware.hitboxes["L thigh"] or table.HasValue(tbl, Meiware.hitboxes["R thigh"]) and Meiware.hitboxes["R thigh"] or table.HasValue(tbl, Meiware.hitboxes["L arm"]) and Meiware.hitboxes["L arm"] or table.HasValue(tbl, Meiware.hitboxes["R arm"]) and Meiware.hitboxes["R arm"]  or table.HasValue(tbl, Meiware.hitboxes["L calf"]) and Meiware.hitboxes["L calf"] or table.HasValue(tbl, Meiware.hitboxes["R calf"]) and Meiware.hitboxes["R calf"] or table.HasValue(tbl, Meiware.hitboxes["L forearm"]) and Meiware.hitboxes["L forearm"] or table.HasValue(tbl, Meiware.hitboxes["R forearm"]) and Meiware.hitboxes["R forearm"] or table.HasValue(tbl, Meiware.hitboxes["L foot"]) and Meiware.hitboxes["L foot"] or table.HasValue(tbl, Meiware.hitboxes["R foot"]) and Meiware.hitboxes["R foot"] or table.HasValue(tbl, Meiware.hitboxes["L hand"]) and Meiware.hitboxes["L hand"] or table.HasValue(tbl, Meiware.hitboxes["R hand"]) and Meiware.hitboxes["R hand"] or table.HasValue(tbl, Meiware.hitboxes["L toes"]) and Meiware.hitboxes["L toes"] or table.HasValue(tbl, Meiware.hitboxes["R toes"]) and Meiware.hitboxes["R toes"] or ""
 end
 
 function Meiware.CurTimeFix()
@@ -134,21 +145,9 @@ function Meiware.TargetFinder(cmd)
 
 	for k, v in pairs(Meiware.playerlist) do
 		if Meiware.IsValidTarget(v) then
-			local visible_hitboxes = {}
-			local visible_vecs = {}
+			local vec = Meiware.MultiPoint(v)
 
-			for k2, v2 in pairs(Meiware.hitboxlist) do
-				local hitbox = Meiware.hitboxes[v2]
-				local vec = Meiware.MultiPoint(v, hitbox)
-
-				if Meiware.IsEntVisibleFromVec(v, vec) then
-					table.insert(visible_hitboxes, hitbox)
-					table.insert(visible_vecs, hitbox, vec)
-				end
-			end
-
-			if !table.IsEmpty(visible_vecs) then
-				local vec = visible_vecs[Meiware.HitboxPriority(visible_hitboxes)]
+			if vec then
 				local ang = (vec - Meiware.localplayer:EyePos()):Angle()
 
 				ang:Normalize()
@@ -571,7 +570,6 @@ function Meiware.Menu()
 	local tab_aim = frame.AddTab("aim")
 	local tab_visuals = frame.AddTab("visuals")
 	local tab_movement = frame.AddTab("movement")
-	local tab_hitboxlist = frame.AddTab("hitboxes")
 	local tab_playerlist = frame.AddTab("players")
 	local tab_entitylist = frame.AddTab("entities")
 
@@ -587,35 +585,6 @@ function Meiware.Menu()
 
 	for k, v in pairs(Meiware.movement) do
 		tab_movement.AddToggle(v)
-	end
-
-	for k, v in pairs({"head", "L arm", "L forearm", "L hand", "R arm", "R forearm", "R hand", "L thigh", "L calf", "L foot", "L toes", "R thigh", "R calf", "R foot", "R toes", "pelvis", "spine"}) do
-		local button = vgui.Create("DButton", tab_hitboxlist)
-		button:SetPos(6, tab_hitboxlist.index)
-		button:SetSize(frame.size.x - 6 - 72 - 6 - 6 - 6 - 18, 24)
-		button:SetText(v)
-
-		button.DoClick = function()
-			if table.HasValue(Meiware.hitboxlist, v) then
-				table.RemoveByValue(Meiware.hitboxlist, v)
-			else
-				table.insert(Meiware.hitboxlist, v)
-			end
-		end
-
-		function button:Paint(w, h)
-			if table.HasValue(Meiware.hitboxlist, v) then
-				surface.SetDrawColor(Meiware.color)
-				surface.DrawOutlinedRect(0, 0, w, h)
-				button:SetColor(Meiware.color)
-			else
-				surface.SetDrawColor(Meiware.InvertColor(Meiware.color))
-				surface.DrawOutlinedRect(0, 0, w, h)
-				button:SetColor(Meiware.InvertColor(Meiware.color))
-			end
-		end
-
-		tab_hitboxlist.index = tab_hitboxlist.index + 30
 	end
 
 	for k, v in pairs(player.GetAll()) do
