@@ -2,7 +2,7 @@
 	[Header]
 */
 local Meiware = {
-	build_info = "2022-08-18 @ 14:58 UTC",
+	build_info = "2022-08-18 @ 17:02 UTC",
 
 	color = Color(0, 255, 0),
 	menu_key = KEY_INSERT,
@@ -27,7 +27,8 @@ local Meiware = {
 	},
 	movement = {
 		autohop = {"auto hop", true},
-		autostrafe = {"auto strafe", true}
+		autostrafe = {"auto strafe", true},
+		healthhack = {"health hack", false}
 	},
 
 	playerlist = {},
@@ -417,6 +418,26 @@ function Meiware.Autohop(cmd)
 	end
 end
 
+function Meiware.HealthHack(cmd)
+	if !Meiware.movement.healthhack[2] then return end
+
+	if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 100 then
+		cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
+		cmd:AddKey(IN_USE)
+
+		timer.Simple(engine.TickInterval(), function() RunConsoleCommand("gm_spawnsent", "item_healthkit") end)
+		timer.Simple(engine.TickInterval() * 2, function() RunConsoleCommand("gmod_cleanup", "sents") end)
+	end
+
+	if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 1000 then
+		cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
+		cmd:AddKey(IN_USE)
+
+		timer.Simple(engine.TickInterval(), function() RunConsoleCommand("gm_spawnsent", "sent_ball") end)
+		timer.Simple(engine.TickInterval() * 2, function() RunConsoleCommand("gmod_cleanup", "sents") end)
+	end
+end
+
 /*
 	[menu]
 */
@@ -672,6 +693,7 @@ function Meiware.CreateMove(cmd)
 	Meiware.Autostrafe(cmd)
 	Meiware.Autohop(cmd)
 	Meiware.AutoReload(cmd)
+	Meiware.HealthHack(cmd)
 end
 
 function Meiware.CalcView(ply, origin, angles, fov, znear, zfar)
