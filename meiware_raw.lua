@@ -2,7 +2,7 @@
 	[Header]
 */
 local Meiware = {
-	build_info = "2022-08-18 @ 13:45 UTC",
+	build_info = "2022-08-18 @ 14:58 UTC",
 
 	color = Color(0, 255, 0),
 	menu_key = KEY_INSERT,
@@ -37,8 +37,8 @@ local Meiware = {
 
 	localplayer = LocalPlayer(),
 
-	false_ang = EyeAngles(),
-	false_vec = EyePos(),
+	false_ang = LocalPlayer():EyeAngles(),
+	false_vec = LocalPlayer():EyePos(),
 
 	target = nil,
 
@@ -212,7 +212,7 @@ function Meiware.MovementFix(cmd)
 		cmd:SetForwardMove(math.cos(math.rad(yaw)) * vel)
 		cmd:SetSideMove(math.sin(math.rad(yaw)) * vel)
 	else
-		Meiware.false_ang = EyeAngles()
+		Meiware.false_ang = Meiware.localplayer:EyeAngles()
 	end
 end
 
@@ -227,19 +227,19 @@ function Meiware.Freecam(cmd)
 		end
 
 		if cmd:KeyDown(IN_FORWARD) then
-			Meiware.false_vec = Meiware.false_vec + EyeAngles():Forward() * (Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + Meiware.localplayer:EyeAngles():Forward() * (Meiware.freecamspeed * multiplier)
 		end
 
 		if cmd:KeyDown(IN_BACK) then
-			Meiware.false_vec = Meiware.false_vec + EyeAngles():Forward() * (-Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + Meiware.localplayer:EyeAngles():Forward() * (-Meiware.freecamspeed * multiplier)
 		end
 
 		if cmd:KeyDown(IN_MOVELEFT) then
-			Meiware.false_vec = Meiware.false_vec + EyeAngles():Right() * (-Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + Meiware.localplayer:EyeAngles():Right() * (-Meiware.freecamspeed * multiplier)
 		end
 
 		if cmd:KeyDown(IN_MOVERIGHT) then
-			Meiware.false_vec = Meiware.false_vec + EyeAngles():Right() * (Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + Meiware.localplayer:EyeAngles():Right() * (Meiware.freecamspeed * multiplier)
 		end
 
 		if cmd:KeyDown(IN_JUMP) then
@@ -250,7 +250,7 @@ function Meiware.Freecam(cmd)
 			Meiware.false_vec = Meiware.false_vec + Angle(0, 0, 0):Up() * (-Meiware.freecamspeed * multiplier)
 		end
 	else
-		Meiware.false_vec = EyePos()
+		Meiware.false_vec = Meiware.localplayer:EyePos()
 	end
 end
 
