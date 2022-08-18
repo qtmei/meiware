@@ -425,17 +425,19 @@ function Meiware.HealthHack(cmd)
 		cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
 		cmd:AddKey(IN_USE)
 
-		timer.Simple(engine.TickInterval(), function() RunConsoleCommand("gm_spawnsent", "item_healthkit") end)
-		timer.Simple(engine.TickInterval() * 2, function() RunConsoleCommand("gmod_cleanup", "sents") end)
+		RunConsoleCommand("gm_spawnsent", "item_healthkit")
+
+		timer.Simple(engine.TickInterval(), function() RunConsoleCommand("gmod_cleanup", "sents") end)
 	end
 
-	if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 1000 then
+	/*if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 1000 then
 		cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
 		cmd:AddKey(IN_USE)
 
-		timer.Simple(engine.TickInterval(), function() RunConsoleCommand("gm_spawnsent", "sent_ball") end)
-		timer.Simple(engine.TickInterval() * 2, function() RunConsoleCommand("gmod_cleanup", "sents") end)
-	end
+		RunConsoleCommand("gm_spawnsent", "sent_ball")
+
+		timer.Simple(engine.TickInterval(), function() RunConsoleCommand("gmod_cleanup", "sents") end)
+	end*/
 end
 
 /*
