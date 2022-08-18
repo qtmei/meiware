@@ -2,7 +2,7 @@
 	[Header]
 */
 local Meiware = {
-	build_info = "2022-08-18 @ 01:44 UTC",
+	build_info = "2022-08-18 @ 13:45 UTC",
 
 	color = Color(0, 255, 0),
 	menu_key = KEY_INSERT,
@@ -105,14 +105,14 @@ function Meiware.MultiPoint(ent)
 	local visible_hitboxes = {}
 	local visible_vecs = {}
 
-	local hitbox_sets = ent:GetHitBoxGroupCount()
+	local hitbox_sets = ent:GetHitboxSetCount()
 
 	for hitbox_set = 0, hitbox_sets - 1 do
 		local hitboxes = ent:GetHitBoxCount(hitbox_set)
 
 		for hitbox = 0, hitboxes - 1 do
 			local vec, ang = ent:GetBonePosition(ent:GetHitBoxBone(hitbox, hitbox_set))
-			local min, max = ent:GetHitBoxBounds(hitbox, 0)
+			local min, max = ent:GetHitBoxBounds(hitbox, hitbox_set)
 			local offset = Vector(math.Rand(min.x, max.x), math.Rand(min.y, max.y), math.Rand(min.z, max.z))
 
 			offset:Rotate(ang)
