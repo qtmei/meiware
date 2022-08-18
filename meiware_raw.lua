@@ -2,7 +2,7 @@
 	[Header]
 */
 local Meiware = {
-	build_info = "2022-08-18 @ 01:26 UTC",
+	build_info = "2022-08-18 @ 01:44 UTC",
 
 	color = Color(0, 255, 0),
 	menu_key = KEY_INSERT,
@@ -145,20 +145,21 @@ function Meiware.TargetFinder(cmd)
 
 	for k, v in pairs(Meiware.playerlist) do
 		if Meiware.IsValidTarget(v) then
-			local vec = Meiware.MultiPoint(v)
+			local ang = (v:WorldSpaceCenter() - Meiware.localplayer:EyePos()):Angle()
+			local fov = math.abs(math.NormalizeAngle(Meiware.false_ang.y - ang.y)) + math.abs(math.NormalizeAngle(Meiware.false_ang.p - ang.p))
 
-			if vec then
-				local ang = (vec - Meiware.localplayer:EyePos()):Angle()
+			if fov < closest_target.fov then
+				local vec = Meiware.MultiPoint(v)
 
-				ang:Normalize()
-				Meiware.Clamp(ang)
+				if vec then
+					local ang = (vec - Meiware.localplayer:EyePos()):Angle()
 
-				local fov = math.abs(math.NormalizeAngle(Meiware.false_ang.y - ang.y)) + math.abs(math.NormalizeAngle(Meiware.false_ang.p - ang.p))
+					ang:Normalize()
+					Meiware.Clamp(ang)
 
-				if fov < closest_target.fov then
 					closest_target = v
-					closest_target.ang = ang
 					closest_target.fov = fov
+					closest_target.ang = ang
 				end
 			end
 		end
