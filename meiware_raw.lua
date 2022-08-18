@@ -117,7 +117,7 @@ function Meiware.MultiPoint(ent)
 
 			offset:Rotate(ang)
 
-			if Meiware.IsEntVisibleFromVec(ent, vec) then
+			if Meiware.IsEntVisibleFromVec(ent, vec + offset) then
 				table.insert(visible_hitboxes, hitbox)
 				table.insert(visible_vecs, hitbox, vec + offset)
 			end
