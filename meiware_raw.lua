@@ -137,7 +137,7 @@ function Meiware.CurTimeFix()
 	Meiware.curtime = CurTime() + engine.TickInterval()
 end
 
-function Meiware.TargetFinder(cmd)
+function Meiware.TargetFinder()
 	if !Meiware.aim.aimbot[2] then return end
 
 	local closest_target = {}
@@ -665,7 +665,6 @@ end
 	[hooks]
 */
 function Meiware.CreateMove(cmd)
-	Meiware.TargetFinder(cmd)
 	Meiware.Aimbot(cmd)
 	Meiware.MovementFix(cmd)
 	Meiware.Freecam(cmd)
@@ -718,6 +717,7 @@ function Meiware.HUDPaint()
 end
 
 function Meiware.Think()
+	Meiware.TargetFinder()
 	Meiware.MenuKeyListener()
 end
 
