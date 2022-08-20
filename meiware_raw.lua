@@ -2,10 +2,10 @@
 	[Header]
 */
 local Meiware = {
-	build_info = "2022-08-18 @ 17:02 UTC",
+	build_info = "2022-08-20 @ 22:44 UTC",
 
 	color = Color(0, 255, 0),
-	menu_key = KEY_INSERT,
+	menu_key = KEY_C,
 	aimtrig_key = MOUSE_5,
 	aimbot_fov = 6,
 	fov = 100,
@@ -31,19 +31,17 @@ local Meiware = {
 		healthhack = {"health hack", false}
 	},
 
-	playerlist = {},
-	entitylist = {},
-
 	chars = string.ToTable("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
 
 	menu = false,
+	menu_activetab = "aim",
+	menu_delay = 0,
 
 	localplayer = LocalPlayer(),
+	target = nil,
 
 	false_ang = LocalPlayer():EyeAngles(),
 	false_vec = LocalPlayer():EyePos(),
-
-	target = nil,
 
 	curtime = 0,
 
@@ -105,7 +103,7 @@ function Meiware.IsValidTarget(ent)
 	if !IsValid(ent) then return false end
 	if ent:IsEffectActive(EF_NODRAW) or ent:GetRenderMode() == RENDERMODE_NONE or ent:GetRenderMode() == RENDERMODE_TRANSCOLOR or ent:GetColor().a == 0 then return false end
 
-	return ent != Meiware.localplayer and ent:IsPlayer() and ent:Alive() and ent:Team() != TEAM_SPECTATOR and !ent:IsDormant() and (Meiware.aim.ignoreteam[2] or ent:Team() != Meiware.localplayer:Team()) and table.HasValue(Meiware.playerlist, ent)
+	return ent != Meiware.localplayer and ent:IsPlayer() and ent:Alive() and ent:Team() != TEAM_SPECTATOR and !ent:IsDormant() and (Meiware.aim.ignoreteam[2] or ent:Team() != Meiware.localplayer:Team())
 end
 
 function Meiware.IsEntVisibleFromVec(ent, vec)
@@ -160,7 +158,7 @@ function Meiware.TargetFinder()
 	local closest_target = {}
 	closest_target.fov = 360
 
-	for k, v in pairs(Meiware.playerlist) do
+	for k, v in pairs(player.GetAll()) do
 		if Meiware.IsValidTarget(v) then
 			local ang = (v:WorldSpaceCenter() - Meiware.localplayer:EyePos()):Angle()
 			local fov = math.abs(math.NormalizeAngle(Meiware.false_ang.y - ang.y)) + math.abs(math.NormalizeAngle(Meiware.false_ang.p - ang.p))
@@ -350,7 +348,7 @@ function Meiware.Wallhack()
 	render.SetStencilCompareFunction(STENCIL_ALWAYS)
 	render.SetStencilZFailOperation(STENCIL_REPLACE)
 
-	for k, v in pairs(Meiware.playerlist) do
+	for k, v in pairs(player.GetAll()) do
 		if Meiware.IsValidTarget(v) then
 			v:DrawModel()
 
@@ -362,10 +360,10 @@ function Meiware.Wallhack()
 		end
 	end
 
-	local invertedcol = Meiware.InvertColor(Meiware.color)
+	local col = Meiware.InvertColor(Meiware.color)
 
 	render.SetStencilCompareFunction(STENCIL_EQUAL)
-	render.ClearBuffersObeyStencil(invertedcol.r, invertedcol.g, invertedcol.b, 255, false)
+	render.ClearBuffersObeyStencil(col.r, col.g, col.b, 255, false)
 	render.SetStencilEnable(false)
 
 	render.SetStencilWriteMask(0xFF)
@@ -385,7 +383,7 @@ function Meiware.Wallhack()
 	render.SetStencilReferenceValue(2)
 	render.SetStencilWriteMask(2)
 
-	for k, v in pairs(Meiware.playerlist) do
+	for k, v in pairs(player.GetAll()) do
 		if Meiware.IsValidTarget(v) then
 			v:DrawModel()
 
@@ -407,7 +405,7 @@ function Meiware.ESP()
 
 	surface.SetFont("Default")
 
-	for k, v in pairs(ents.GetAll()) do
+	for k, v in pairs(player.GetAll()) do
 		if Meiware.IsValidTarget(v) then
 			local length = 6 + select(1, surface.GetTextSize(v:Name())) + 6
 			local height = 24
@@ -423,23 +421,6 @@ function Meiware.ESP()
 			surface.SetTextColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
 			surface.SetTextPos(x + 6, y + 6)
 			surface.DrawText(v:Name())
-		end
-
-		if table.HasValue(Meiware.entitylist, v:GetClass()) then
-			local length = 6 + select(1, surface.GetTextSize(v:GetClass())) + 6
-			local height = 24
-			local x = v:WorldSpaceCenter():ToScreen().x - (length / 2)
-			local y = v:WorldSpaceCenter():ToScreen().y - (height / 2)
-
-			surface.SetDrawColor(36, 36, 36, 225)
-			surface.DrawRect(x, y, length, height)
-
-			surface.SetDrawColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
-			surface.DrawOutlinedRect(x, y, length, height, 1)
-
-			surface.SetTextColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
-			surface.SetTextPos(x + 6, y + 6)
-			surface.DrawText(v:GetClass())
 		end
 	end
 end
@@ -458,243 +439,115 @@ end
 	[menu]
 */
 function Meiware.Menu()
-	Meiware.menu = true
+	if !Meiware.menu then return end
 
 	surface.SetFont("Default")
 
-	frame = vgui.Create("DFrame")
-	frame.size = Vector(600, 400, 0)
-	frame.index = 36
-	frame:SetVisible(true)
-	frame:SetTitle("Meiware " .. Meiware.build_info)
-	frame:SetPos(ScrW() / 2 - (frame.size.x / 2), ScrH() / 2 - (frame.size.y / 2))
-	frame:SetSize(frame.size.x, frame.size.y)
-	frame:SetDraggable(true)
-	frame:ShowCloseButton(false)
-	frame:MakePopup()
+	local mousex, mousey = input.GetCursorPos()
+	local window_title = "Meiware " .. Meiware.build_info
+	local window_size = Vector(600, 400, 0)
+	local window_pos = Vector((ScrW() / 2) - (window_size.x / 2), (ScrH() / 2) - (window_size.y / 2), 0)
+	local window_index = {
+		["window"] = window_pos.y + 6 + select(2, surface.GetTextSize(window_title)) + 6,
+		["aim"] = window_pos.y + 6 + select(2, surface.GetTextSize(window_title)) + 6 + 6,
+		["visuals"] = window_pos.y + 6 + select(2, surface.GetTextSize(window_title)) + 6 + 6,
+		["movement"] = window_pos.y + 6 + select(2, surface.GetTextSize(window_title)) + 6 + 6
+	}
 
-	function frame:Paint(w, h)
-		surface.SetDrawColor(Color(36, 36, 36, 225))
-		surface.DrawRect(0, 0, w, h)
+	surface.SetDrawColor(Color(36, 36, 36, 225))
+	surface.DrawRect(window_pos.x, window_pos.y, window_size.x, window_size.y)
+	surface.SetDrawColor(Meiware.color)
+	surface.DrawOutlinedRect(window_pos.x, window_pos.y, window_size.x, window_size.y)
+
+	surface.SetTextColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+	surface.SetTextPos(window_pos.x + (window_size.x / 2) - (select(1, surface.GetTextSize(window_title)) / 2), window_pos.y + 6)
+	surface.DrawText(window_title)
+
+	surface.DrawOutlinedRect(window_pos.x + 6 + 72 + 6, window_pos.y + 6 + select(2, surface.GetTextSize(window_title)) + 6, window_size.x - 6 - 72 - 6 - 6, window_size.y - 6 - select(2, surface.GetTextSize(window_title)) - 6 - 6)
+
+	function AddTab(name)
+		local x = window_pos.x + 6
+		local y = window_index["window"]
+		local w = 72
+		local h = 48
+
 		surface.SetDrawColor(Meiware.color)
-		surface.DrawOutlinedRect(0, 0, w, h)
+		surface.SetTextColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+
+		if Meiware.menu_activetab == name then
+			local col = Meiware.InvertColor(Meiware.color)
+
+			surface.DrawRect(x, y, w, h)
+			surface.SetTextColor(col.r, col.g, col.b)
+		else
+			surface.DrawOutlinedRect(x, y, w, h)
+		end
+
+		surface.SetTextPos(x + (w / 2) - (select(1, surface.GetTextSize(name)) / 2), y + (h / 2) - (select(2, surface.GetTextSize(name)) / 2))
+		surface.DrawText(name)
+
+		if mousex >= x and mousey >= y and mousex <= x + w and mousey <= y + h and input.IsMouseDown(MOUSE_LEFT) and CurTime() > Meiware.menu_delay then
+			Meiware.menu_activetab = name
+
+			Meiware.menu_delay = CurTime() + 1
+		end
+
+		window_index["window"] = window_index["window"] + 48 + 6
 	end
 
-	frame.lblTitle.UpdateColours = function(label, skin)
-		label:SetTextStyleColor(Meiware.color)
-	end
+	function AddToggle(var, tab)
+		if tab != Meiware.menu_activetab then return end
 
-	frame.exit = vgui.Create("DButton", frame)
-	frame.exit:SetPos(frame.size.x - 30, 6)
-	frame.exit:SetSize(24, 24)
-	frame.exit:SetText("")
-	frame.exit:SetColor(Meiware.color)
+		local x = window_pos.x + 6 + 72 + 6 + 6
+		local y = window_index[tab]
+		local w = 24
+		local h = 24
 
-	frame.exit.DoClick = function()
-		frame:Close()
-		Meiware.menu = false
+		surface.SetTextColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+		surface.SetTextPos(x, y + (select(2, surface.GetTextSize(var[1])) / 2))
+		surface.DrawText(var[1])
 
-		surface.PlaySound("ambient/levels/canals/drip4.wav")
-	end
+		x = x + select(1, surface.GetTextSize(var[1])) + 6
 
-	function frame.exit:Paint(w, h)
 		surface.SetDrawColor(Meiware.color)
-		surface.DrawOutlinedRect(0, 0, w, h)
-		surface.DrawLine(8, 8, 15, 15)
-		surface.DrawLine(15, 8, 8, 15)
+		surface.DrawOutlinedRect(x, y, w, h)
+
+		if var[2] then
+			surface.SetDrawColor(Meiware.color)
+			surface.DrawRect(x, y, w, h)
+		end
+
+		if mousex >= x and mousey >= y and mousex <= x + w and mousey <= y + h and input.IsMouseDown(MOUSE_LEFT) and CurTime() > Meiware.menu_delay then
+			var[2] = !var[2]
+
+			Meiware.menu_delay = CurTime() + 1
+		end
+
+		window_index[tab] = window_index[tab] + 24 + 6
 	end
 
-	frame.scrollpanels = {}
-
-	frame.AddTab = function(text)
-		local scrollpanel = vgui.Create("DScrollPanel", frame)
-		scrollpanel.index = 6
-		scrollpanel:SetSize(frame.size.x - 6 - 72 - 6 - 6, frame.size.y - 6 - 24 - 6 - 6)
-		scrollpanel:SetPos(6 + 72 + 6, 6 + 24 + 6)
-		scrollpanel:SetVisible(false)
-
-		function scrollpanel:Paint(w, h)
-			surface.SetDrawColor(Meiware.color)
-			surface.DrawOutlinedRect(0, 0, w, h)
-		end
-
-		local vbar = scrollpanel:GetVBar()
-
-		function vbar:Paint(w, h)
-			surface.SetDrawColor(Meiware.color)
-			surface.DrawOutlinedRect(0, 0, w, h)
-		end
-		function vbar.btnUp:Paint(w, h)
-			surface.SetDrawColor(Meiware.color)
-			surface.DrawOutlinedRect(0, 0, w, h)
-		end
-		function vbar.btnDown:Paint(w, h)
-			surface.SetDrawColor(Meiware.color)
-			surface.DrawOutlinedRect(0, 0, w, h)
-		end
-		function vbar.btnGrip:Paint(w, h)
-			surface.SetDrawColor(Meiware.color)
-			surface.DrawOutlinedRect(0, 0, w, h)
-		end
-
-		scrollpanel.AddToggle = function(var)
-			local label = vgui.Create("DLabel", scrollpanel)
-			label:SetText(var[1])
-			label:SetWide(select(1, surface.GetTextSize(var[1])))
-			label:SetPos(6, scrollpanel.index)
-			label:SetTextColor(Meiware.color)
-
-			local button = vgui.Create("DButton", scrollpanel)
-			button:SetText("")
-			button:SetSize(24, 24)
-			button:SetPos(6 + select(1, surface.GetTextSize(var[1])) + 6, scrollpanel.index)
-
-			button.DoClick = function()
-				var[2] = !var[2]
-
-				surface.PlaySound("ambient/levels/canals/drip4.wav")
-			end
-
-			function button:Paint(w, h)
-				if var[2] then
-					surface.SetDrawColor(Meiware.color)
-					surface.DrawRect(0, 0, w, h)
-				else
-					surface.SetDrawColor(Meiware.color)
-					surface.DrawOutlinedRect(0, 0, w, h)
-				end
-			end
-
-			scrollpanel.index = scrollpanel.index + 30
-		end
-
-		table.insert(frame.scrollpanels, scrollpanel)
-
-		local button = vgui.Create("DButton", frame)
-		button:SetText(text)
-		button:SetSize(72, 48)
-		button:SetPos(6, frame.index)
-		button:SetTextColor(Meiware.color)
-
-		button.DoClick = function()
-			for k, v in pairs(frame.scrollpanels) do
-				v:SetVisible(false)
-			end
-
-			scrollpanel:SetVisible(true)
-
-			surface.PlaySound("ambient/levels/canals/drip4.wav")
-		end
-
-		function button:Paint(w, h)
-			if scrollpanel:IsVisible() then
-				surface.SetDrawColor(Meiware.color)
-				surface.DrawRect(0, 0, w, h)
-
-				button:SetTextColor(Meiware.InvertColor(Meiware.color))
-			else
-				surface.SetDrawColor(Meiware.color)
-				surface.DrawOutlinedRect(0, 0, w, h)
-
-				button:SetTextColor(Meiware.color)
-			end
-		end
-
-		frame.index = frame.index + 54
-
-		return scrollpanel
-	end
-
-	local tab_aim = frame.AddTab("aim")
-	local tab_visuals = frame.AddTab("visuals")
-	local tab_movement = frame.AddTab("movement")
-	local tab_playerlist = frame.AddTab("players")
-	local tab_entitylist = frame.AddTab("entities")
-
-	tab_aim:SetVisible(true)
+	AddTab("aim")
+	AddTab("visuals")
+	AddTab("movement")
 
 	for k, v in pairs(Meiware.aim) do
-		tab_aim.AddToggle(v)
+		AddToggle(v, "aim")
 	end
 
 	for k, v in pairs(Meiware.visuals) do
-		tab_visuals.AddToggle(v)
+		AddToggle(v, "visuals")
 	end
 
 	for k, v in pairs(Meiware.movement) do
-		tab_movement.AddToggle(v)
-	end
-
-	for k, v in pairs(player.GetAll()) do
-		if v != Meiware.localplayer then
-			local button = vgui.Create("DButton", tab_playerlist)
-			button:SetPos(6, tab_playerlist.index)
-			button:SetSize(frame.size.x - 6 - 72 - 6 - 6 - 6 - 18, 24)
-			button:SetText("[" .. v:SteamID() .. "] " .. v:Name())
-
-			button.DoClick = function()
-				if table.HasValue(Meiware.playerlist, v) then
-					table.RemoveByValue(Meiware.playerlist, v)
-				else
-					table.insert(Meiware.playerlist, v)
-				end
-			end
-
-			function button:Paint(w, h)
-				if table.HasValue(Meiware.playerlist, v) then
-					surface.SetDrawColor(Meiware.color)
-					surface.DrawOutlinedRect(0, 0, w, h)
-					button:SetColor(Meiware.color)
-				else
-					surface.SetDrawColor(Meiware.InvertColor(Meiware.color))
-					surface.DrawOutlinedRect(0, 0, w, h)
-					button:SetColor(Meiware.InvertColor(Meiware.color))
-				end
-			end
-
-			tab_playerlist.index = tab_playerlist.index + 30
-		end
-	end
-
-	local entitylist = {}
-
-	for k, v in pairs(ents.GetAll()) do
-		if IsValid(v) and !table.HasValue(entitylist, v:GetClass()) then
-			table.insert(entitylist, v:GetClass())
-
-			local button = vgui.Create("DButton", tab_entitylist)
-			button:SetPos(6, tab_entitylist.index)
-			button:SetSize(frame.size.x - 6 - 72 - 6 - 6 - 6 - 18, 24)
-			button:SetText(v:GetClass())
-
-			button.DoClick = function()
-				if table.HasValue(Meiware.entitylist, button:GetText()) then
-					table.RemoveByValue(Meiware.entitylist, button:GetText())
-				else
-					table.insert(Meiware.entitylist, button:GetText())
-				end
-			end
-
-			function button:Paint(w, h)
-				if table.HasValue(Meiware.entitylist, button:GetText()) then
-					surface.SetDrawColor(Meiware.color)
-					surface.DrawOutlinedRect(0, 0, w, h)
-					button:SetColor(Meiware.color)
-				else
-					surface.SetDrawColor(Meiware.InvertColor(Meiware.color))
-					surface.DrawOutlinedRect(0, 0, w, h)
-					button:SetColor(Meiware.InvertColor(Meiware.color))
-				end
-			end
-
-			tab_entitylist.index = tab_entitylist.index + 30
-		end
+		AddToggle(v, "movement")
 	end
 end
 
 function Meiware.MenuKeyListener()
-	if input.IsButtonDown(Meiware.menu_key) and !Meiware.menu then
-		Meiware.Menu()
+	if input.IsButtonDown(Meiware.menu_key) then
+		Meiware.menu = true
+	else
+		Meiware.menu = false
 	end
 end
 
@@ -757,12 +610,15 @@ end)
 function GAMEMODE:PostRender()
 	Meiware["PostRender"]()
 
+	cam.Start3D()
+	Meiware.Wallhack() //no depth, TODO: fix depth
+	cam.End3D()
+
 	cam.Start2D()
 	Meiware.ESP()
 	Meiware.Crosshair()
+	Meiware.Menu()
 	cam.End2D()
-
-	cam.Start3D()
-	Meiware.Wallhack()
-	cam.End3D()
 end
+
+print("[Meiware] menu key: " .. input.GetKeyName(Meiware.menu_key) .. ", aim/trigger key: " .. input.GetKeyName(Meiware.aimtrig_key))
