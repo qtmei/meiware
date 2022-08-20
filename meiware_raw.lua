@@ -34,6 +34,8 @@ local Meiware = {
 	playerlist = {},
 	entitylist = {},
 
+	chars = string.ToTable("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
+
 	menu = false,
 
 	localplayer = LocalPlayer(),
@@ -61,10 +63,32 @@ local Meiware = {
 	HITBOX_R_FOOT = 13,
 	HITBOX_R_TOE = 14,
 	HITBOX_PELVIS = 15,
-	HITBOX_SPINE = 16
+	HITBOX_SPINE = 16,
+
+	["PostRender"] = GAMEMODE.PostRender
 }
 
 surface.SetFont("Default")
+
+function Meiware.GenerateID()
+	math.randomseed(os.time())
+
+	local ID = {}
+
+	for i = 1, 16, 1 do
+		table.insert(ID, Meiware.chars[math.random(1, table.Count(Meiware.chars))])
+	end
+
+	for i = 5, 15, 5 do
+		table.insert(ID, i, "-")
+	end
+
+	return table.concat(ID)
+end
+
+function Meiware.InvertColor(col)
+	return Color(255 - col.r, 255 - col.g, 255 - col.b)
+end
 
 /*
 	[aim]
@@ -103,6 +127,8 @@ function Meiware.HitboxPriority(tbl)
 end
 
 function Meiware.MultiPoint(ent)
+	math.randomseed(os.time())
+
 	local visible_hitboxes = {}
 	local visible_vecs = {}
 
@@ -126,16 +152,6 @@ function Meiware.MultiPoint(ent)
 	end
 
 	return !table.IsEmpty(visible_vecs) and visible_vecs[Meiware.HitboxPriority(visible_hitboxes)] or nil
-end
-
-function Meiware.InvertColor(col)
-	return Color(255 - col.r, 255 - col.g, 255 - col.b)
-end
-
-function Meiware.CurTimeFix()
-	if !IsFirstTimePredicted() then return end
-
-	Meiware.curtime = CurTime() + engine.TickInterval()
 end
 
 function Meiware.TargetFinder()
@@ -268,12 +284,58 @@ function Meiware.AutoReload(cmd)
 end
 
 /*
+	[movement]
+*/
+function Meiware.Autostrafe(cmd)
+	if !Meiware.movement.autostrafe[2] then return end
+
+	if !Meiware.localplayer:IsOnGround() and Meiware.localplayer:GetMoveType() != MOVETYPE_LADDER and Meiware.localplayer:GetMoveType() != MOVETYPE_NOCLIP then
+		cmd:SetForwardMove(5850 / Meiware.localplayer:GetVelocity():Length2D())
+
+		if cmd:CommandNumber() % 2 == 0 then
+			cmd:SetSideMove(-Meiware.localplayer:GetVelocity():Length2D())
+		elseif cmd:CommandNumber() % 2 != 0 then
+			cmd:SetSideMove(Meiware.localplayer:GetVelocity():Length2D())
+		end
+	end
+end
+
+function Meiware.Autohop(cmd)
+	if !Meiware.movement.autohop[2] then return end
+
+	if cmd:KeyDown(IN_JUMP) and !Meiware.localplayer:IsOnGround() and Meiware.localplayer:GetMoveType() != MOVETYPE_LADDER and Meiware.localplayer:GetMoveType() != MOVETYPE_NOCLIP then
+		cmd:RemoveKey(IN_JUMP)
+	end
+end
+
+function Meiware.HealthHack(cmd)
+	if !Meiware.movement.healthhack[2] then return end
+
+	if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 100 then
+		cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
+		cmd:AddKey(IN_USE)
+
+		RunConsoleCommand("gm_spawnsent", "item_healthkit")
+
+		timer.Simple(engine.TickInterval(), function() RunConsoleCommand("gmod_cleanup", "sents") end)
+	end
+
+	/*if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 1000 and Meiware.localplayer:Health() >= 100 then
+		cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
+		cmd:AddKey(IN_USE)
+
+		RunConsoleCommand("gm_spawnsent", "sent_ball")
+
+		timer.Simple(engine.TickInterval(), function() RunConsoleCommand("gmod_cleanup", "sents") end)
+	end*/
+end
+
+/*
 	[visuals]
 */
 function Meiware.Wallhack()
 	if !Meiware.visuals.wallhack[2] then return end
 
-	cam.Start3D()
 	render.SetStencilWriteMask(0xFF)
 	render.SetStencilTestMask(0xFF)
 	render.SetStencilReferenceValue(0)
@@ -338,7 +400,6 @@ function Meiware.Wallhack()
 	render.SetStencilCompareFunction(STENCIL_EQUAL)
 	render.ClearBuffersObeyStencil(Meiware.color.r, Meiware.color.g, Meiware.color.b, 255, false)
 	render.SetStencilEnable(false)
-	cam.End3D()
 end
 
 function Meiware.ESP()
@@ -391,53 +452,6 @@ function Meiware.Crosshair()
 	surface.SetDrawColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
 	surface.DrawRect((ScrW() / 2) - (xhair_length / 2), (ScrH() / 2) - (xhair_thickness / 2), xhair_length, xhair_thickness)
 	surface.DrawRect((ScrW() / 2) - (xhair_thickness / 2), (ScrH() / 2) - (xhair_length / 2), xhair_thickness, xhair_length)
-end
-
-/*
-	[movement]
-*/
-function Meiware.Autostrafe(cmd)
-	if !Meiware.movement.autostrafe[2] then return end
-
-	if !Meiware.localplayer:IsOnGround() and Meiware.localplayer:GetMoveType() != MOVETYPE_LADDER and Meiware.localplayer:GetMoveType() != MOVETYPE_NOCLIP then
-		cmd:SetForwardMove(5850 / Meiware.localplayer:GetVelocity():Length2D())
-
-		if cmd:CommandNumber() % 2 == 0 then
-			cmd:SetSideMove(-Meiware.localplayer:GetVelocity():Length2D())
-		elseif cmd:CommandNumber() % 2 != 0 then
-			cmd:SetSideMove(Meiware.localplayer:GetVelocity():Length2D())
-		end
-	end
-end
-
-function Meiware.Autohop(cmd)
-	if !Meiware.movement.autohop[2] then return end
-
-	if cmd:KeyDown(IN_JUMP) and !Meiware.localplayer:IsOnGround() and Meiware.localplayer:GetMoveType() != MOVETYPE_LADDER and Meiware.localplayer:GetMoveType() != MOVETYPE_NOCLIP then
-		cmd:RemoveKey(IN_JUMP)
-	end
-end
-
-function Meiware.HealthHack(cmd)
-	if !Meiware.movement.healthhack[2] then return end
-
-	if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 100 then
-		cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
-		cmd:AddKey(IN_USE)
-
-		RunConsoleCommand("gm_spawnsent", "item_healthkit")
-
-		timer.Simple(engine.TickInterval(), function() RunConsoleCommand("gmod_cleanup", "sents") end)
-	end
-
-	/*if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 1000 then
-		cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
-		cmd:AddKey(IN_USE)
-
-		RunConsoleCommand("gm_spawnsent", "sent_ball")
-
-		timer.Simple(engine.TickInterval(), function() RunConsoleCommand("gmod_cleanup", "sents") end)
-	end*/
 end
 
 /*
@@ -687,7 +701,7 @@ end
 /*
 	[hooks]
 */
-function Meiware.CreateMove(cmd)
+hook.Add("CreateMove", Meiware.GenerateID(), function(cmd)
 	Meiware.Aimbot(cmd)
 	Meiware.MovementFix(cmd)
 	Meiware.Freecam(cmd)
@@ -696,9 +710,9 @@ function Meiware.CreateMove(cmd)
 	Meiware.Autohop(cmd)
 	Meiware.AutoReload(cmd)
 	Meiware.HealthHack(cmd)
-end
+end)
 
-function Meiware.CalcView(ply, origin, angles, fov, znear, zfar)
+hook.Add("CalcView", Meiware.GenerateID(), function(ply, origin, angles, fov, znear, zfar)
 	local view = {}
 
 	view.origin = origin
@@ -719,40 +733,36 @@ function Meiware.CalcView(ply, origin, angles, fov, znear, zfar)
 	end
 
 	return view
-end
+end)
 
-function Meiware.CalcViewModelView(wep, vm, oldPos, oldAng, pos, ang)
-	local tempang = ang
-
+hook.Add("CalcViewModelView", Meiware.GenerateID(), function(wep, vm, oldPos, oldAng, pos, ang)
 	if Meiware.aim.aimbot[2] then
-		tempang = Meiware.false_ang
+		ang = Meiware.false_ang
 	end
 
-	return pos, tempang
-end
+	return pos, ang
+end)
 
-function Meiware.PostDrawOpaqueRenderables()
-	Meiware.Wallhack()
-end
-
-function Meiware.HUDPaint()
-	Meiware.ESP()
-	Meiware.Crosshair()
-end
-
-function Meiware.Think()
+hook.Add("Think", Meiware.GenerateID(), function()
 	Meiware.TargetFinder()
 	Meiware.MenuKeyListener()
-end
+end)
 
-function Meiware.Move()
-	Meiware.CurTimeFix()
-end
+hook.Add("Move", Meiware.GenerateID(), function(ply, mv)
+	if !IsFirstTimePredicted() then return end
 
-hook.Add("CreateMove", "MeiwareCreateMove", Meiware.CreateMove)
-hook.Add("CalcView", "MeiwareCalcView", Meiware.CalcView)
-hook.Add("CalcViewModelView", "MeiwareCalcViewModelView", Meiware.CalcViewModelView)
-hook.Add("PostDrawOpaqueRenderables", "MeiwarePostDrawOpaqueRenderables", Meiware.PostDrawOpaqueRenderables)
-hook.Add("HUDPaint", "MeiwareHUDPaint", Meiware.HUDPaint)
-hook.Add("Think", "MeiwareThink", Meiware.Think)
-hook.Add("Move", "MeiwareMove", Meiware.Move)
+	Meiware.curtime = CurTime() + engine.TickInterval()
+end)
+
+function GAMEMODE:PostRender()
+	Meiware["PostRender"]()
+
+	cam.Start2D()
+	Meiware.ESP()
+	Meiware.Crosshair()
+	cam.End2D()
+
+	cam.Start3D()
+	Meiware.Wallhack()
+	cam.End3D()
+end
