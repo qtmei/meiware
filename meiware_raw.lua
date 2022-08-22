@@ -5,7 +5,6 @@ local Meiware = {
 	build_info = "2022-08-20 @ 22:44 UTC",
 
 	color = Color(0, 255, 0),
-	menu_key = KEY_C,
 	aimtrig_key = MOUSE_5,
 	aimbot_fov = 6,
 	fov = 100,
@@ -424,7 +423,7 @@ function Meiware.ESP()
 	for k, v in pairs(player.GetAll()) do
 		if Meiware.IsValidTarget(v) then
 			local length = 6 + select(1, surface.GetTextSize(v:Name())) + 6
-			local height = 24
+			local height = 6 + select(2, surface.GetTextSize(v:Name())) + 6
 			local x = v:GetPos():ToScreen().x - (length / 2)
 			local y = (v:EyePos() + Vector(0, 0, 8)):ToScreen().y - height
 
@@ -559,14 +558,6 @@ function Meiware.Menu()
 	end
 end
 
-function Meiware.MenuKeyListener()
-	if input.IsButtonDown(Meiware.menu_key) then
-		Meiware.menu = true
-	else
-		Meiware.menu = false
-	end
-end
-
 /*
 	[hooks]
 */
@@ -614,13 +605,20 @@ end)
 
 hook.Add("Think", Meiware.GenerateID(), function()
 	Meiware.TargetFinder()
-	Meiware.MenuKeyListener()
 end)
 
 hook.Add("Move", Meiware.GenerateID(), function(ply, mv)
 	if !IsFirstTimePredicted() then return end
 
 	Meiware.curtime = CurTime() + engine.TickInterval()
+end)
+
+hook.Add("OnContextMenuOpen", Meiware.GenerateID(), function()
+	Meiware.menu = true
+end)
+
+hook.Add("OnContextMenuClose", Meiware.GenerateID(), function()
+	Meiware.menu = false
 end)
 
 function GAMEMODE:PostRender()
@@ -637,4 +635,4 @@ function GAMEMODE:PostRender()
 	cam.End2D()
 end
 
-print("[Meiware] menu key: " .. input.GetKeyName(Meiware.menu_key) .. ", aim/trigger key: " .. input.GetKeyName(Meiware.aimtrig_key))
+print("[Meiware] menu key: " .. input.LookupBinding("+menu_context", true) .. ", aim/trigger key: " .. input.GetKeyName(Meiware.aimtrig_key))
