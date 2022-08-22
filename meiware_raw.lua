@@ -23,12 +23,13 @@ local Meiware = {
 		esp = {"ESP", true},
 		crosshair = {"crosshair", true},
 		freecam = {"freecam", false},
-		fovoverride = {"FOV override", true}
+		fovoverride = {"FOV override", false}
 	},
 	movement = {
 		autohop = {"auto hop", true},
 		autostrafe = {"auto strafe", true},
-		healthhack = {"health hack", false}
+		autohealthkit = {"auto health kit", false},
+		autohealthball = {"auto health ball", false}
 	},
 
 	chars = string.ToTable("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
@@ -44,6 +45,9 @@ local Meiware = {
 	false_vec = LocalPlayer():EyePos(),
 
 	curtime = 0,
+
+	autohealth_ents = 0,
+	autohealth_delay = 0,
 
 	HITBOX_HEAD = 0,
 	HITBOX_L_ARM = 1,
@@ -65,8 +69,6 @@ local Meiware = {
 
 	["PostRender"] = GAMEMODE.PostRender
 }
-
-surface.SetFont("Default")
 
 function Meiware.GenerateID()
 	math.randomseed(os.time())
@@ -242,19 +244,19 @@ function Meiware.Freecam(cmd)
 		end
 
 		if cmd:KeyDown(IN_FORWARD) then
-			Meiware.false_vec = Meiware.false_vec + Meiware.localplayer:EyeAngles():Forward() * (Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + Meiware.false_ang:Forward() * (Meiware.freecamspeed * multiplier)
 		end
 
 		if cmd:KeyDown(IN_BACK) then
-			Meiware.false_vec = Meiware.false_vec + Meiware.localplayer:EyeAngles():Forward() * (-Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + Meiware.false_ang:Forward() * (-Meiware.freecamspeed * multiplier)
 		end
 
 		if cmd:KeyDown(IN_MOVELEFT) then
-			Meiware.false_vec = Meiware.false_vec + Meiware.localplayer:EyeAngles():Right() * (-Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + Meiware.false_ang:Right() * (-Meiware.freecamspeed * multiplier)
 		end
 
 		if cmd:KeyDown(IN_MOVERIGHT) then
-			Meiware.false_vec = Meiware.false_vec + Meiware.localplayer:EyeAngles():Right() * (Meiware.freecamspeed * multiplier)
+			Meiware.false_vec = Meiware.false_vec + Meiware.false_ang:Right() * (Meiware.freecamspeed * multiplier)
 		end
 
 		if cmd:KeyDown(IN_JUMP) then
@@ -307,25 +309,39 @@ function Meiware.Autohop(cmd)
 end
 
 function Meiware.HealthHack(cmd)
-	if !Meiware.movement.healthhack[2] then return end
+	if Meiware.autohealth_ents > 0 then
+		RunConsoleCommand("gmod_cleanup", "sents")
 
-	if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 100 then
-		cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
-		cmd:AddKey(IN_USE)
-
-		RunConsoleCommand("gm_spawnsent", "item_healthkit")
-
-		timer.Simple(engine.TickInterval(), function() RunConsoleCommand("gmod_cleanup", "sents") end)
+		Meiware.autohealth_ents = 0
 	end
 
-	/*if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 1000 and Meiware.localplayer:Health() >= 100 then
-		cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
-		cmd:AddKey(IN_USE)
+	if Meiware.movement.autohealthkit[2] then
+		if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 100 then
+			cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
+			cmd:AddKey(IN_USE)
 
-		RunConsoleCommand("gm_spawnsent", "sent_ball")
+			if cmd:GetViewAngles().p == 89 and CurTime() > Meiware.autohealth_delay then
+				RunConsoleCommand("gm_spawnsent", "item_healthkit")
 
-		timer.Simple(engine.TickInterval(), function() RunConsoleCommand("gmod_cleanup", "sents") end)
-	end*/
+				Meiware.autohealth_ents = Meiware.autohealth_ents + 1
+				Meiware.autohealth_delay = CurTime() + 0.25
+			end
+		end
+	end
+
+	if Meiware.movement.autohealthball[2] then
+		if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 1000 and Meiware.localplayer:Health() >= 100 then
+			cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
+			cmd:AddKey(IN_USE)
+
+			if cmd:GetViewAngles().p == 89 and CurTime() > Meiware.autohealth_delay then
+				RunConsoleCommand("gm_spawnsent", "sent_ball")
+
+				Meiware.autohealth_ents = Meiware.autohealth_ents + 1
+				Meiware.autohealth_delay = CurTime() + 0.25
+			end
+		end
+	end
 end
 
 /*
@@ -520,7 +536,7 @@ function Meiware.Menu()
 		if mousex >= x and mousey >= y and mousex <= x + w and mousey <= y + h and input.IsMouseDown(MOUSE_LEFT) and CurTime() > Meiware.menu_delay then
 			var[2] = !var[2]
 
-			Meiware.menu_delay = CurTime() + 1
+			Meiware.menu_delay = CurTime() + 0.25
 		end
 
 		window_index[tab] = window_index[tab] + 24 + 6
