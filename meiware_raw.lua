@@ -2,7 +2,7 @@
 	[Header]
 */
 local Meiware = {
-	build_info = "2022-08-20 @ 22:44 UTC",
+	build_info = "2022-08-23 @ 17:48 UTC",
 
 	color = Color(0, 255, 0),
 	aimtrig_key = MOUSE_5,
@@ -74,12 +74,8 @@ function Meiware.GenerateID()
 
 	local ID = {}
 
-	for i = 1, 16, 1 do
-		table.insert(ID, Meiware.chars[math.random(1, table.Count(Meiware.chars))])
-	end
-
-	for i = 5, 15, 5 do
-		table.insert(ID, i, "-")
+	for i = 0, 16 - 1, 1 do
+		ID[i] = Meiware.chars[math.random(1, table.Count(Meiware.chars))]
 	end
 
 	return table.concat(ID)
@@ -98,6 +94,8 @@ function Meiware.Clamp(ang)
 	elseif ang.p < -89 then
 		ang.p = -89
 	end
+
+	ang.r = 0
 end
 
 function Meiware.IsValidTarget(ent)
@@ -122,15 +120,13 @@ function Meiware.CanFire()
 end
 
 function Meiware.HitboxPriority(tbl)
-	return table.HasValue(tbl, Meiware.HITBOX_HEAD) and Meiware.HITBOX_HEAD or table.HasValue(tbl, Meiware.HITBOX_SPINE) and Meiware.HITBOX_SPINE or table.HasValue(tbl, Meiware.HITBOX_PELVIS) and Meiware.HITBOX_PELVIS or table.HasValue(tbl, Meiware.HITBOX_L_THIGH) and Meiware.HITBOX_L_THIGH or table.HasValue(tbl, Meiware.HITBOX_R_THIGH) and Meiware.HITBOX_R_THIGH or table.HasValue(tbl, Meiware.HITBOX_L_ARM) and Meiware.HITBOX_L_ARM or table.HasValue(tbl, Meiware.HITBOX_R_ARM) and Meiware.HITBOX_R_ARM  or table.HasValue(tbl, Meiware.HITBOX_L_CALF) and Meiware.HITBOX_L_CALF or table.HasValue(tbl, Meiware.HITBOX_R_CALF) and Meiware.HITBOX_R_CALF or table.HasValue(tbl, Meiware.HITBOX_L_FOREARM) and Meiware.HITBOX_L_FOREARM or table.HasValue(tbl, Meiware.HITBOX_R_FOREARM) and Meiware.HITBOX_R_FOREARM or table.HasValue(tbl, Meiware.HITBOX_L_FOOT) and Meiware.HITBOX_L_FOOT or table.HasValue(tbl, Meiware.HITBOX_R_FOOT) and Meiware.HITBOX_R_FOOT or table.HasValue(tbl, Meiware.HITBOX_L_HAND) and Meiware.HITBOX_L_HAND or table.HasValue(tbl, Meiware.HITBOX_R_HAND) and Meiware.HITBOX_R_HAND or table.HasValue(tbl, Meiware.HITBOX_L_TOE) and Meiware.HITBOX_L_TOE or table.HasValue(tbl, Meiware.HITBOX_R_TOE) and Meiware.HITBOX_R_TOE or table.Random(tbl)
+	return tbl[Meiware.HITBOX_HEAD] or tbl[Meiware.HITBOX_SPINE] or tbl[Meiware.HITBOX_PELVIS] or tbl[Meiware.HITBOX_L_THIGH] or tbl[Meiware.HITBOX_R_THIGH] or tbl[Meiware.HITBOX_L_ARM] or tbl[Meiware.HITBOX_R_ARM] or tbl[Meiware.HITBOX_L_CALF] or tbl[Meiware.HITBOX_R_CALF] or tbl[Meiware.HITBOX_L_FOREARM] or tbl[Meiware.HITBOX_R_FOREARM] or tbl[Meiware.HITBOX_L_FOOT] or tbl[Meiware.HITBOX_R_FOOT] or tbl[Meiware.HITBOX_L_HAND] or tbl[Meiware.HITBOX_R_HAND] or tbl[Meiware.HITBOX_L_TOE] or tbl[Meiware.HITBOX_R_TOE] or table.Random(tbl)
 end
 
 function Meiware.MultiPoint(ent)
 	math.randomseed(os.time())
 
-	local visible_hitboxes = {}
 	local visible_vecs = {}
-
 	local hitbox_sets = ent:GetHitboxSetCount()
 
 	for hitbox_set = 0, hitbox_sets - 1 do
@@ -144,13 +140,12 @@ function Meiware.MultiPoint(ent)
 			offset:Rotate(ang)
 
 			if Meiware.IsEntVisibleFromVec(ent, vec + offset) then
-				table.insert(visible_hitboxes, hitbox)
-				table.insert(visible_vecs, hitbox, vec + offset)
+				visible_vecs[hitbox] = vec + offset
 			end
 		end
 	end
 
-	return !table.IsEmpty(visible_vecs) and visible_vecs[Meiware.HitboxPriority(visible_hitboxes)] or nil
+	return #visible_vecs > 0 and Meiware.HitboxPriority(visible_vecs) or nil
 end
 
 function Meiware.TargetFinder()
