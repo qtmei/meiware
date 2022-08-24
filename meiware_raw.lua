@@ -2,7 +2,7 @@
 	[Header]
 */
 local Meiware = {
-	build_info = "2022-08-23 @ 17:48 UTC",
+	build_info = "2022-08-24 @ 19:43 UTC",
 
 	color = Color(0, 255, 0),
 	aimtrig_key = MOUSE_5,
@@ -120,7 +120,7 @@ function Meiware.CanFire()
 end
 
 function Meiware.HitboxPriority(tbl)
-	return tbl[Meiware.HITBOX_HEAD] or tbl[Meiware.HITBOX_SPINE] or tbl[Meiware.HITBOX_PELVIS] or tbl[Meiware.HITBOX_L_THIGH] or tbl[Meiware.HITBOX_R_THIGH] or tbl[Meiware.HITBOX_L_ARM] or tbl[Meiware.HITBOX_R_ARM] or tbl[Meiware.HITBOX_L_CALF] or tbl[Meiware.HITBOX_R_CALF] or tbl[Meiware.HITBOX_L_FOREARM] or tbl[Meiware.HITBOX_R_FOREARM] or tbl[Meiware.HITBOX_L_FOOT] or tbl[Meiware.HITBOX_R_FOOT] or tbl[Meiware.HITBOX_L_HAND] or tbl[Meiware.HITBOX_R_HAND] or tbl[Meiware.HITBOX_L_TOE] or tbl[Meiware.HITBOX_R_TOE] or table.Random(tbl)
+	return tbl[Meiware.HITBOX_HEAD] or tbl[Meiware.HITBOX_SPINE] or tbl[Meiware.HITBOX_PELVIS] or tbl[Meiware.HITBOX_L_THIGH] or tbl[Meiware.HITBOX_R_THIGH] or tbl[Meiware.HITBOX_L_ARM] or tbl[Meiware.HITBOX_R_ARM] or tbl[Meiware.HITBOX_L_CALF] or tbl[Meiware.HITBOX_R_CALF] or tbl[Meiware.HITBOX_L_FOREARM] or tbl[Meiware.HITBOX_R_FOREARM] or tbl[Meiware.HITBOX_L_FOOT] or tbl[Meiware.HITBOX_R_FOOT] or tbl[Meiware.HITBOX_L_HAND] or tbl[Meiware.HITBOX_R_HAND] or tbl[Meiware.HITBOX_L_TOE] or tbl[Meiware.HITBOX_R_TOE] or table.Random(tbl) or nil
 end
 
 function Meiware.MultiPoint(ent)
@@ -145,7 +145,7 @@ function Meiware.MultiPoint(ent)
 		end
 	end
 
-	return #visible_vecs > 0 and Meiware.HitboxPriority(visible_vecs) or nil
+	return Meiware.HitboxPriority(visible_vecs)
 end
 
 function Meiware.TargetFinder()
