@@ -131,8 +131,10 @@ local function MultiPoint(ent)
 
 			offset:Rotate(ang)
 
-			if IsEntVisibleFromVec(ent, vec + offset) then
-				visible_vecs[hitbox] = vec + offset
+			vec = vec + offset
+
+			if IsEntVisibleFromVec(ent, vec) then
+				visible_vecs[hitbox] = vec
 			end
 		end
 	end
