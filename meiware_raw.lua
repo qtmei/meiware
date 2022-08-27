@@ -1,94 +1,86 @@
 /*
 	[Header]
 */
-local Meiware = {
-	build_info = "2022-08-24 @ 19:43 UTC",
+local build_info = "2022-08-27 @ 19:16 UTC"
 
-	color = Color(0, 255, 0),
-	aimtrig_key = MOUSE_5,
-	aimbot_fov = 6,
-	fov = 100,
-	freecamspeed = 4,
+local color = Color(0, 255, 0)
+local aimtrig_key = MOUSE_5
+local aim_fov = 6
 
-	aim = {
-		aimbot = {"aimbot", true},
-		ignoreteam = {"ignore team check?", true},
-		ignorefov = {"ignore fov check?", false},
-		triggerbot = {"triggerbot", true},
-		autoreload = {"auto reload", true}
-	},
-	visuals = {
-		wallhack = {"wallhack", true},
-		esp = {"ESP", true},
-		crosshair = {"crosshair", true},
-		freecam = {"freecam", false},
-		fovoverride = {"FOV override", false}
-	},
-	movement = {
-		autohop = {"auto hop", true},
-		autostrafe = {"auto strafe", true},
-		autohealthkit = {"auto health kit", false},
-		autohealthball = {"auto health ball", false}
-	},
-
-	chars = string.ToTable("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
-
-	menu = false,
-	menu_activetab = "aim",
-	menu_delay = 0,
-
-	localplayer = LocalPlayer(),
-	target = nil,
-
-	false_ang = LocalPlayer():EyeAngles(),
-	false_vec = LocalPlayer():EyePos(),
-
-	curtime = 0,
-
-	autohealth_ents = 0,
-	autohealth_delay = 0,
-
-	HITBOX_HEAD = 0,
-	HITBOX_L_ARM = 1,
-	HITBOX_L_FOREARM = 2,
-	HITBOX_L_HAND = 3,
-	HITBOX_R_ARM = 4,
-	HITBOX_R_FOREARM = 5,
-	HITBOX_R_HAND = 6,
-	HITBOX_L_THIGH = 7,
-	HITBOX_L_CALF = 8,
-	HITBOX_L_FOOT = 9,
-	HITBOX_L_TOE = 10,
-	HITBOX_R_THIGH = 11,
-	HITBOX_R_CALF = 12,
-	HITBOX_R_FOOT = 13,
-	HITBOX_R_TOE = 14,
-	HITBOX_PELVIS = 15,
-	HITBOX_SPINE = 16,
-
-	["PostRender"] = GAMEMODE.PostRender
+local aim = {
+	aimbot = {"aimbot", true},
+	ignoreteam = {"ignore team check?", true},
+	ragemode = {"rage mode", false},
+	triggerbot = {"triggerbot", true},
+	autoreload = {"auto reload", true}
+}
+local visuals = {
+	wallhack = {"wallhack", true},
+	esp = {"ESP", true},
+	crosshair = {"crosshair", true},
+	freecam = {"freecam", false}
+}
+local movement = {
+	autohop = {"auto hop", true},
+	autostrafe = {"auto strafe", true},
+	autohealthkit = {"auto health kit", false},
+	autohealthball = {"auto health ball", false}
 }
 
-function Meiware.GenerateID()
+local HITBOX_HEAD = 0
+local HITBOX_L_ARM = 1
+local HITBOX_L_FOREARM = 2
+local HITBOX_L_HAND = 3
+local HITBOX_R_ARM = 4
+local HITBOX_R_FOREARM = 5
+local HITBOX_R_HAND = 6
+local HITBOX_L_THIGH = 7
+local HITBOX_L_CALF = 8
+local HITBOX_L_FOOT = 9
+local HITBOX_L_TOE = 10
+local HITBOX_R_THIGH = 11
+local HITBOX_R_CALF = 12
+local HITBOX_R_FOOT = 13
+local HITBOX_R_TOE = 14
+local HITBOX_PELVIS = 15
+local HITBOX_SPINE = 16
+
+local chars = string.ToTable("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+local menu = false
+local menu_activetab = "aim"
+local menu_delay = 0
+
+local localplayer = LocalPlayer()
+local target = nil
+
+local false_ang = LocalPlayer():EyeAngles()
+local false_vec = LocalPlayer():EyePos()
+
+local curtime = 0
+
+local autohealth_ents = 0
+local autohealth_delay = 0
+
+local PostRender = GAMEMODE.PostRender
+
+local function GenerateID()
 	math.randomseed(os.time())
 
 	local ID = {}
 
 	for i = 0, 16 - 1, 1 do
-		ID[i] = Meiware.chars[math.random(1, table.Count(Meiware.chars))]
+		ID[i] = chars[math.random(1, table.Count(chars))]
 	end
 
 	return table.concat(ID)
 end
 
-function Meiware.InvertColor(col)
+local function InvertColor(col)
 	return Color(255 - col.r, 255 - col.g, 255 - col.b)
 end
 
-/*
-	[aim]
-*/
-function Meiware.Clamp(ang)
+local function Clamp(ang)
 	if ang.p > 89 then
 		ang.p = 89
 	elseif ang.p < -89 then
@@ -98,32 +90,32 @@ function Meiware.Clamp(ang)
 	ang.r = 0
 end
 
-function Meiware.IsValidTarget(ent)
+local function IsValidTarget(ent)
 	if !IsValid(ent) then return false end
 	if ent:IsEffectActive(EF_NODRAW) or ent:GetRenderMode() == RENDERMODE_NONE or ent:GetRenderMode() == RENDERMODE_TRANSCOLOR or ent:GetColor().a == 0 then return false end
 
-	return ent != Meiware.localplayer and ent:IsPlayer() and ent:Alive() and ent:Team() != TEAM_SPECTATOR and !ent:IsDormant() and (Meiware.aim.ignoreteam[2] or ent:Team() != Meiware.localplayer:Team())
+	return ent != localplayer and ent:IsPlayer() and ent:Alive() and ent:Team() != TEAM_SPECTATOR and !ent:IsDormant() and (aim.ignoreteam[2] or ent:Team() != localplayer:Team())
 end
 
-function Meiware.IsEntVisibleFromVec(ent, vec)
-	local trace = util.TraceLine({mask = MASK_SHOT, ignoreworld = false, filter = Meiware.localplayer, start = Meiware.localplayer:EyePos(), endpos = vec})
+local function IsEntVisibleFromVec(ent, vec)
+	local trace = util.TraceLine({mask = MASK_SHOT, ignoreworld = false, filter = localplayer, start = localplayer:EyePos(), endpos = vec})
 
 	return trace.Entity == ent
 end
 
-function Meiware.CanFire()
-	local wep = Meiware.localplayer:GetActiveWeapon()
+local function CanFire()
+	local wep = localplayer:GetActiveWeapon()
 
 	if !IsValid(wep) then return false end
 
-	return wep:Clip1() > 0 and wep:GetActivity() != ACT_RELOAD and wep:GetNextPrimaryFire() < Meiware.curtime
+	return wep:Clip1() > 0 and wep:GetActivity() != ACT_RELOAD and wep:GetNextPrimaryFire() < curtime
 end
 
-function Meiware.HitboxPriority(tbl)
-	return tbl[Meiware.HITBOX_HEAD] or tbl[Meiware.HITBOX_SPINE] or tbl[Meiware.HITBOX_PELVIS] or tbl[Meiware.HITBOX_L_THIGH] or tbl[Meiware.HITBOX_R_THIGH] or tbl[Meiware.HITBOX_L_ARM] or tbl[Meiware.HITBOX_R_ARM] or tbl[Meiware.HITBOX_L_CALF] or tbl[Meiware.HITBOX_R_CALF] or tbl[Meiware.HITBOX_L_FOREARM] or tbl[Meiware.HITBOX_R_FOREARM] or tbl[Meiware.HITBOX_L_FOOT] or tbl[Meiware.HITBOX_R_FOOT] or tbl[Meiware.HITBOX_L_HAND] or tbl[Meiware.HITBOX_R_HAND] or tbl[Meiware.HITBOX_L_TOE] or tbl[Meiware.HITBOX_R_TOE] or table.Random(tbl) or nil
+local function HitboxPriority(tbl)
+	return tbl[HITBOX_HEAD] or tbl[HITBOX_SPINE] or tbl[HITBOX_PELVIS] or tbl[HITBOX_L_THIGH] or tbl[HITBOX_R_THIGH] or tbl[HITBOX_L_ARM] or tbl[HITBOX_R_ARM] or tbl[HITBOX_L_CALF] or tbl[HITBOX_R_CALF] or tbl[HITBOX_L_FOREARM] or tbl[HITBOX_R_FOREARM] or tbl[HITBOX_L_FOOT] or tbl[HITBOX_R_FOOT] or tbl[HITBOX_L_HAND] or tbl[HITBOX_R_HAND] or tbl[HITBOX_L_TOE] or tbl[HITBOX_R_TOE] or table.Random(tbl) or nil
 end
 
-function Meiware.MultiPoint(ent)
+local function MultiPoint(ent)
 	math.randomseed(os.time())
 
 	local visible_vecs = {}
@@ -139,34 +131,37 @@ function Meiware.MultiPoint(ent)
 
 			offset:Rotate(ang)
 
-			if Meiware.IsEntVisibleFromVec(ent, vec + offset) then
+			if IsEntVisibleFromVec(ent, vec + offset) then
 				visible_vecs[hitbox] = vec + offset
 			end
 		end
 	end
 
-	return Meiware.HitboxPriority(visible_vecs)
+	return HitboxPriority(visible_vecs)
 end
 
-function Meiware.TargetFinder()
-	if !Meiware.aim.aimbot[2] then return end
+/*
+	[aim]
+*/
+local function TargetFinder()
+	if !aim.aimbot[2] then return end
 
 	local closest_target = {}
 	closest_target.fov = 360
 
 	for k, v in pairs(player.GetAll()) do
-		if Meiware.IsValidTarget(v) then
-			local ang = (v:WorldSpaceCenter() - Meiware.localplayer:EyePos()):Angle()
-			local fov = math.abs(math.NormalizeAngle(Meiware.false_ang.y - ang.y)) + math.abs(math.NormalizeAngle(Meiware.false_ang.p - ang.p))
+		if IsValidTarget(v) then
+			local ang = (v:WorldSpaceCenter() - localplayer:EyePos()):Angle()
+			local fov = math.abs(math.NormalizeAngle(false_ang.y - ang.y)) + math.abs(math.NormalizeAngle(false_ang.p - ang.p))
 
 			if fov < closest_target.fov then
-				local vec = Meiware.MultiPoint(v)
+				local vec = MultiPoint(v)
 
 				if vec then
-					local ang = (vec - Meiware.localplayer:EyePos()):Angle()
+					local ang = (vec - localplayer:EyePos()):Angle()
 
 					ang:Normalize()
-					Meiware.Clamp(ang)
+					Clamp(ang)
 
 					closest_target = v
 					closest_target.fov = fov
@@ -176,43 +171,43 @@ function Meiware.TargetFinder()
 		end
 	end
 
-	Meiware.target = closest_target
+	target = closest_target
 end
 
-function Meiware.Aimbot(cmd)
-	if !Meiware.aim.aimbot[2] then return end
+local function Aimbot(cmd)
+	if !aim.aimbot[2] then return end
 
-	if Meiware.IsValidTarget(Meiware.target) and Meiware.CanFire() and !input.IsMouseDown(MOUSE_LEFT) and (Meiware.aim.ignorefov[2] or (input.IsButtonDown(Meiware.aimtrig_key) and Meiware.target.fov <= Meiware.aimbot_fov)) then
-		cmd:SetViewAngles(Meiware.target.ang)
+	if IsValidTarget(target) and CanFire() and !input.IsMouseDown(MOUSE_LEFT) and (aim.ragemode[2] or (input.IsButtonDown(aimtrig_key) and target.fov <= aim_fov)) then
+		cmd:SetViewAngles(target.ang)
 		cmd:AddKey(IN_ATTACK)
 	else
-		cmd:SetViewAngles(Meiware.false_ang)
+		cmd:SetViewAngles(false_ang)
 	end
 end
 
-function Meiware.Triggerbot(cmd)
-	if !Meiware.aim.triggerbot[2] then return end
+local function Triggerbot(cmd)
+	if !aim.triggerbot[2] then return end
 
-	local trace = util.TraceLine({mask = MASK_SHOT, start = Meiware.localplayer:EyePos(), endpos = Meiware.localplayer:EyePos() + cmd:GetViewAngles():Forward() * 32768, filter = Meiware.localplayer})
+	local trace = util.TraceLine({mask = MASK_SHOT, start = localplayer:EyePos(), endpos = localplayer:EyePos() + cmd:GetViewAngles():Forward() * 32768, filter = localplayer})
 
-	if Meiware.IsValidTarget(trace.Entity) and Meiware.CanFire() and (Meiware.aim.ignorefov[2] or input.IsButtonDown(Meiware.aimtrig_key)) then
+	if IsValidTarget(trace.Entity) and CanFire() and (aim.ragemode[2] or input.IsButtonDown(aimtrig_key)) then
 		cmd:AddKey(IN_ATTACK)
 	end
 end
 
-function Meiware.MovementFix(cmd)
-	if Meiware.aim.aimbot[2] then
-		local temp_false_ang = Meiware.false_ang + Angle(cmd:GetMouseY() * GetConVar("m_pitch"):GetFloat(), -cmd:GetMouseX() * GetConVar("m_yaw"):GetFloat(), 0)
+local function MovementFix(cmd)
+	if aim.aimbot[2] then
+		local temp_false_ang = false_ang + Angle(cmd:GetMouseY() * GetConVar("m_pitch"):GetFloat(), -cmd:GetMouseX() * GetConVar("m_yaw"):GetFloat(), 0)
 
 		temp_false_ang:Normalize()
-		Meiware.Clamp(temp_false_ang)
+		Clamp(temp_false_ang)
 
-		Meiware.false_ang = temp_false_ang
+		false_ang = temp_false_ang
 
 		local vec = Vector(cmd:GetForwardMove(), cmd:GetSideMove(), 0)
 		local vel = math.sqrt(vec.x * vec.x + vec.y * vec.y)
 		local mang = vec:Angle()
-		local yaw = cmd:GetViewAngles().y - Meiware.false_ang.y + mang.y
+		local yaw = cmd:GetViewAngles().y - false_ang.y + mang.y
 
 		if ((cmd:GetViewAngles().p + 90) % 360) > 180 then
 			yaw = 180 - yaw
@@ -223,54 +218,54 @@ function Meiware.MovementFix(cmd)
 		cmd:SetForwardMove(math.cos(math.rad(yaw)) * vel)
 		cmd:SetSideMove(math.sin(math.rad(yaw)) * vel)
 	else
-		Meiware.false_ang = Meiware.localplayer:EyeAngles()
+		false_ang = localplayer:EyeAngles()
 	end
 end
 
-function Meiware.Freecam(cmd)
-	if Meiware.visuals.freecam[2] then
+local function Freecam(cmd)
+	if visuals.freecam[2] then
 		cmd:ClearMovement()
 
-		local multiplier = 1
+		local speed = 4
 
 		if cmd:KeyDown(IN_SPEED) then
-			multiplier = 2
+			speed = speed * 2
 		end
 
 		if cmd:KeyDown(IN_FORWARD) then
-			Meiware.false_vec = Meiware.false_vec + Meiware.false_ang:Forward() * (Meiware.freecamspeed * multiplier)
+			false_vec = false_vec + false_ang:Forward() * speed
 		end
 
 		if cmd:KeyDown(IN_BACK) then
-			Meiware.false_vec = Meiware.false_vec + Meiware.false_ang:Forward() * (-Meiware.freecamspeed * multiplier)
+			false_vec = false_vec + false_ang:Forward() * -speed
 		end
 
 		if cmd:KeyDown(IN_MOVELEFT) then
-			Meiware.false_vec = Meiware.false_vec + Meiware.false_ang:Right() * (-Meiware.freecamspeed * multiplier)
+			false_vec = false_vec + false_ang:Right() * -speed
 		end
 
 		if cmd:KeyDown(IN_MOVERIGHT) then
-			Meiware.false_vec = Meiware.false_vec + Meiware.false_ang:Right() * (Meiware.freecamspeed * multiplier)
+			false_vec = false_vec + false_ang:Right() * speed
 		end
 
 		if cmd:KeyDown(IN_JUMP) then
-			Meiware.false_vec = Meiware.false_vec + Angle(0, 0, 0):Up() * (Meiware.freecamspeed * multiplier)
+			false_vec = false_vec + Angle(0, 0, 0):Up() * speed
 		end
 
 		if cmd:KeyDown(IN_DUCK) then
-			Meiware.false_vec = Meiware.false_vec + Angle(0, 0, 0):Up() * (-Meiware.freecamspeed * multiplier)
+			false_vec = false_vec + Angle(0, 0, 0):Up() * -speed
 		end
 	else
-		Meiware.false_vec = Meiware.localplayer:EyePos()
+		false_vec = localplayer:EyePos()
 	end
 end
 
-function Meiware.AutoReload(cmd)
-	local wep = Meiware.localplayer:GetActiveWeapon()
+local function AutoReload(cmd)
+	local wep = localplayer:GetActiveWeapon()
 
-	if Meiware.aim.autoreload[2] and IsValid(wep) then
+	if aim.autoreload[2] and IsValid(wep) then
 		if wep.Primary then
-			if wep:Clip1() == 0 and wep:GetMaxClip1() > 0 and Meiware.localplayer:GetAmmoCount(wep:GetPrimaryAmmoType()) > 0 then
+			if wep:Clip1() == 0 and wep:GetMaxClip1() > 0 and localplayer:GetAmmoCount(wep:GetPrimaryAmmoType()) > 0 then
 				cmd:AddKey(IN_RELOAD)
 			end
 		end
@@ -280,59 +275,59 @@ end
 /*
 	[movement]
 */
-function Meiware.Autostrafe(cmd)
-	if !Meiware.movement.autostrafe[2] then return end
+local function Autostrafe(cmd)
+	if !movement.autostrafe[2] then return end
 
-	if !Meiware.localplayer:IsOnGround() and Meiware.localplayer:GetMoveType() != MOVETYPE_LADDER and Meiware.localplayer:GetMoveType() != MOVETYPE_NOCLIP then
-		cmd:SetForwardMove(5850 / Meiware.localplayer:GetVelocity():Length2D())
+	if !localplayer:IsOnGround() and localplayer:GetMoveType() != MOVETYPE_LADDER and localplayer:GetMoveType() != MOVETYPE_NOCLIP then
+		cmd:SetForwardMove(5850 / localplayer:GetVelocity():Length2D())
 
 		if cmd:CommandNumber() % 2 == 0 then
-			cmd:SetSideMove(-Meiware.localplayer:GetVelocity():Length2D())
+			cmd:SetSideMove(-localplayer:GetVelocity():Length2D())
 		elseif cmd:CommandNumber() % 2 != 0 then
-			cmd:SetSideMove(Meiware.localplayer:GetVelocity():Length2D())
+			cmd:SetSideMove(localplayer:GetVelocity():Length2D())
 		end
 	end
 end
 
-function Meiware.Autohop(cmd)
-	if !Meiware.movement.autohop[2] then return end
+local function Autohop(cmd)
+	if !movement.autohop[2] then return end
 
-	if cmd:KeyDown(IN_JUMP) and !Meiware.localplayer:IsOnGround() and Meiware.localplayer:GetMoveType() != MOVETYPE_LADDER and Meiware.localplayer:GetMoveType() != MOVETYPE_NOCLIP then
+	if cmd:KeyDown(IN_JUMP) and !localplayer:IsOnGround() and localplayer:GetMoveType() != MOVETYPE_LADDER and localplayer:GetMoveType() != MOVETYPE_NOCLIP then
 		cmd:RemoveKey(IN_JUMP)
 	end
 end
 
-function Meiware.HealthHack(cmd)
-	if Meiware.autohealth_ents > 0 then
+local function HealthHack(cmd)
+	if autohealth_ents > 0 then
 		RunConsoleCommand("gmod_cleanup", "sents")
 
-		Meiware.autohealth_ents = 0
+		autohealth_ents = 0
 	end
 
-	if Meiware.movement.autohealthkit[2] then
-		if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 100 then
+	if movement.autohealthkit[2] then
+		if localplayer:Alive() and localplayer:Health() < 100 then
 			cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
 			cmd:AddKey(IN_USE)
 
-			if cmd:GetViewAngles().p == 89 and CurTime() > Meiware.autohealth_delay then
+			if cmd:GetViewAngles().p == 89 and CurTime() > autohealth_delay then
 				RunConsoleCommand("gm_spawnsent", "item_healthkit")
 
-				Meiware.autohealth_ents = Meiware.autohealth_ents + 1
-				Meiware.autohealth_delay = CurTime() + 0.25
+				autohealth_ents = autohealth_ents + 1
+				autohealth_delay = CurTime() + 0.25
 			end
 		end
 	end
 
-	if Meiware.movement.autohealthball[2] then
-		if Meiware.localplayer:Alive() and Meiware.localplayer:Health() < 1000 and Meiware.localplayer:Health() >= 100 then
+	if movement.autohealthball[2] then
+		if localplayer:Alive() and localplayer:Health() < 1000 and localplayer:Health() >= 100 then
 			cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
 			cmd:AddKey(IN_USE)
 
-			if cmd:GetViewAngles().p == 89 and CurTime() > Meiware.autohealth_delay then
+			if cmd:GetViewAngles().p == 89 and CurTime() > autohealth_delay then
 				RunConsoleCommand("gm_spawnsent", "sent_ball")
 
-				Meiware.autohealth_ents = Meiware.autohealth_ents + 1
-				Meiware.autohealth_delay = CurTime() + 0.25
+				autohealth_ents = autohealth_ents + 1
+				autohealth_delay = CurTime() + 0.25
 			end
 		end
 	end
@@ -341,8 +336,8 @@ end
 /*
 	[visuals]
 */
-function Meiware.Wallhack()
-	if !Meiware.visuals.wallhack[2] then return end
+local function Wallhack()
+	if !visuals.wallhack[2] then return end
 
 	render.SetStencilWriteMask(0xFF)
 	render.SetStencilTestMask(0xFF)
@@ -359,7 +354,7 @@ function Meiware.Wallhack()
 	render.SetStencilZFailOperation(STENCIL_REPLACE)
 
 	for k, v in pairs(player.GetAll()) do
-		if Meiware.IsValidTarget(v) then
+		if IsValidTarget(v) then
 			v:DrawModel()
 
 			local wep = v:GetActiveWeapon()
@@ -370,7 +365,7 @@ function Meiware.Wallhack()
 		end
 	end
 
-	local col = Meiware.InvertColor(Meiware.color)
+	local col = InvertColor(color)
 
 	render.SetStencilCompareFunction(STENCIL_EQUAL)
 	render.ClearBuffersObeyStencil(col.r, col.g, col.b, 255, false)
@@ -394,7 +389,7 @@ function Meiware.Wallhack()
 	render.SetStencilWriteMask(2)
 
 	for k, v in pairs(player.GetAll()) do
-		if Meiware.IsValidTarget(v) then
+		if IsValidTarget(v) then
 			v:DrawModel()
 
 			local wep = v:GetActiveWeapon()
@@ -406,17 +401,17 @@ function Meiware.Wallhack()
 	end
 
 	render.SetStencilCompareFunction(STENCIL_EQUAL)
-	render.ClearBuffersObeyStencil(Meiware.color.r, Meiware.color.g, Meiware.color.b, 255, false)
+	render.ClearBuffersObeyStencil(color.r, color.g, color.b, 255, false)
 	render.SetStencilEnable(false)
 end
 
-function Meiware.ESP()
-	if !Meiware.visuals.esp[2] then return end
+local function ESP()
+	if !visuals.esp[2] then return end
 
 	surface.SetFont("Default")
 
 	for k, v in pairs(player.GetAll()) do
-		if Meiware.IsValidTarget(v) then
+		if IsValidTarget(v) then
 			local length = 6 + select(1, surface.GetTextSize(v:Name())) + 6
 			local height = 6 + select(2, surface.GetTextSize(v:Name())) + 6
 			local x = v:GetPos():ToScreen().x - (length / 2)
@@ -425,22 +420,22 @@ function Meiware.ESP()
 			surface.SetDrawColor(36, 36, 36, 225)
 			surface.DrawRect(x, y, length, height)
 
-			surface.SetDrawColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+			surface.SetDrawColor(color.r, color.g, color.b)
 			surface.DrawOutlinedRect(x, y, length, height, 1)
 
-			surface.SetTextColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+			surface.SetTextColor(color.r, color.g, color.b)
 			surface.SetTextPos(x + 6, y + 6)
 			surface.DrawText(v:Name())
 		end
 	end
 end
 
-function Meiware.Crosshair()
-	if !Meiware.visuals.crosshair[2] then return end
+local function Crosshair()
+	if !visuals.crosshair[2] then return end
 
 	local xhair_length = 16
 	local xhair_thickness = 2
-	surface.SetDrawColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+	surface.SetDrawColor(color.r, color.g, color.b)
 	surface.DrawRect((ScrW() / 2) - (xhair_length / 2), (ScrH() / 2) - (xhair_thickness / 2), xhair_length, xhair_thickness)
 	surface.DrawRect((ScrW() / 2) - (xhair_thickness / 2), (ScrH() / 2) - (xhair_length / 2), xhair_thickness, xhair_length)
 end
@@ -448,13 +443,13 @@ end
 /*
 	[menu]
 */
-function Meiware.Menu()
-	if !Meiware.menu then return end
+local function Menu()
+	if !menu then return end
 
 	surface.SetFont("Default")
 
 	local mousex, mousey = input.GetCursorPos()
-	local window_title = "Meiware " .. Meiware.build_info
+	local window_title = "Meiware " .. build_info
 	local window_size = Vector(600, 400, 0)
 	local window_pos = Vector((ScrW() / 2) - (window_size.x / 2), (ScrH() / 2) - (window_size.y / 2), 0)
 	local window_index = {
@@ -466,26 +461,26 @@ function Meiware.Menu()
 
 	surface.SetDrawColor(Color(36, 36, 36, 225))
 	surface.DrawRect(window_pos.x, window_pos.y, window_size.x, window_size.y)
-	surface.SetDrawColor(Meiware.color)
+	surface.SetDrawColor(color)
 	surface.DrawOutlinedRect(window_pos.x, window_pos.y, window_size.x, window_size.y)
 
-	surface.SetTextColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+	surface.SetTextColor(color.r, color.g, color.b)
 	surface.SetTextPos(window_pos.x + (window_size.x / 2) - (select(1, surface.GetTextSize(window_title)) / 2), window_pos.y + 6)
 	surface.DrawText(window_title)
 
 	surface.DrawOutlinedRect(window_pos.x + 6 + 72 + 6, window_pos.y + 6 + select(2, surface.GetTextSize(window_title)) + 6, window_size.x - 6 - 72 - 6 - 6, window_size.y - 6 - select(2, surface.GetTextSize(window_title)) - 6 - 6)
 
-	function AddTab(name)
+	local function AddTab(name)
 		local x = window_pos.x + 6
 		local y = window_index["window"]
 		local w = 72
 		local h = 48
 
-		surface.SetDrawColor(Meiware.color)
-		surface.SetTextColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+		surface.SetDrawColor(color)
+		surface.SetTextColor(color.r, color.g, color.b)
 
-		if Meiware.menu_activetab == name then
-			local col = Meiware.InvertColor(Meiware.color)
+		if menu_activetab == name then
+			local col = InvertColor(color)
 
 			surface.DrawRect(x, y, w, h)
 			surface.SetTextColor(col.r, col.g, col.b)
@@ -496,41 +491,41 @@ function Meiware.Menu()
 		surface.SetTextPos(x + (w / 2) - (select(1, surface.GetTextSize(name)) / 2), y + (h / 2) - (select(2, surface.GetTextSize(name)) / 2))
 		surface.DrawText(name)
 
-		if mousex >= x and mousey >= y and mousex <= x + w and mousey <= y + h and input.IsMouseDown(MOUSE_LEFT) and CurTime() > Meiware.menu_delay then
-			Meiware.menu_activetab = name
+		if mousex >= x and mousey >= y and mousex <= x + w and mousey <= y + h and input.IsMouseDown(MOUSE_LEFT) and CurTime() > menu_delay then
+			menu_activetab = name
 
-			Meiware.menu_delay = CurTime() + 1
+			menu_delay = CurTime() + 1
 		end
 
 		window_index["window"] = window_index["window"] + 48 + 6
 	end
 
-	function AddToggle(var, tab)
-		if tab != Meiware.menu_activetab then return end
+	local function AddToggle(var, tab)
+		if tab != menu_activetab then return end
 
 		local x = window_pos.x + 6 + 72 + 6 + 6
 		local y = window_index[tab]
 		local w = 24
 		local h = 24
 
-		surface.SetTextColor(Meiware.color.r, Meiware.color.g, Meiware.color.b)
+		surface.SetTextColor(color.r, color.g, color.b)
 		surface.SetTextPos(x, y + (select(2, surface.GetTextSize(var[1])) / 2))
 		surface.DrawText(var[1])
 
 		x = x + select(1, surface.GetTextSize(var[1])) + 6
 
-		surface.SetDrawColor(Meiware.color)
+		surface.SetDrawColor(color)
 		surface.DrawOutlinedRect(x, y, w, h)
 
 		if var[2] then
-			surface.SetDrawColor(Meiware.color)
+			surface.SetDrawColor(color)
 			surface.DrawRect(x, y, w, h)
 		end
 
-		if mousex >= x and mousey >= y and mousex <= x + w and mousey <= y + h and input.IsMouseDown(MOUSE_LEFT) and CurTime() > Meiware.menu_delay then
+		if mousex >= x and mousey >= y and mousex <= x + w and mousey <= y + h and input.IsMouseDown(MOUSE_LEFT) and CurTime() > menu_delay then
 			var[2] = !var[2]
 
-			Meiware.menu_delay = CurTime() + 0.25
+			menu_delay = CurTime() + 0.25
 		end
 
 		window_index[tab] = window_index[tab] + 24 + 6
@@ -540,15 +535,15 @@ function Meiware.Menu()
 	AddTab("visuals")
 	AddTab("movement")
 
-	for k, v in pairs(Meiware.aim) do
+	for k, v in pairs(aim) do
 		AddToggle(v, "aim")
 	end
 
-	for k, v in pairs(Meiware.visuals) do
+	for k, v in pairs(visuals) do
 		AddToggle(v, "visuals")
 	end
 
-	for k, v in pairs(Meiware.movement) do
+	for k, v in pairs(movement) do
 		AddToggle(v, "movement")
 	end
 end
@@ -556,78 +551,78 @@ end
 /*
 	[hooks]
 */
-hook.Add("CreateMove", Meiware.GenerateID(), function(cmd)
-	Meiware.Aimbot(cmd)
-	Meiware.MovementFix(cmd)
-	Meiware.Freecam(cmd)
-	Meiware.Triggerbot(cmd)
-	Meiware.Autostrafe(cmd)
-	Meiware.Autohop(cmd)
-	Meiware.AutoReload(cmd)
-	Meiware.HealthHack(cmd)
+hook.Add("Think", GenerateID(), function()
+	TargetFinder()
 end)
 
-hook.Add("CalcView", Meiware.GenerateID(), function(ply, origin, angles, fov, znear, zfar)
+hook.Add("CreateMove", GenerateID(), function(cmd)
+	Aimbot(cmd)
+	MovementFix(cmd)
+	Freecam(cmd)
+	Triggerbot(cmd)
+	Autostrafe(cmd)
+	Autohop(cmd)
+	AutoReload(cmd)
+	HealthHack(cmd)
+end)
+
+hook.Add("CalcView", GenerateID(), function(ply, origin, angles, fov, znear, zfar)
 	local view = {}
 
 	view.origin = origin
 	view.angles = angles
 	view.fov = fov
 
-	if Meiware.aim.aimbot[2] then
-		view.angles = Meiware.false_ang
+	if aim.aimbot[2] then
+		view.angles = false_ang
 	end
 
-	if Meiware.visuals.freecam[2] then
-		view.origin = Meiware.false_vec
+	if visuals.freecam[2] then
+		view.origin = false_vec
 		view.drawviewer = true
 	end
 
-	if Meiware.visuals.fovoverride[2] then
-		view.fov = Meiware.fov
+	if aim.ragemode[2] then
+		view.fov = 100
 	end
 
 	return view
 end)
 
-hook.Add("CalcViewModelView", Meiware.GenerateID(), function(wep, vm, oldPos, oldAng, pos, ang)
-	if Meiware.aim.aimbot[2] then
-		ang = Meiware.false_ang
+hook.Add("CalcViewModelView", GenerateID(), function(wep, vm, oldPos, oldAng, pos, ang)
+	if aim.aimbot[2] then
+		ang = false_ang
 	end
 
 	return pos, ang
 end)
 
-hook.Add("Think", Meiware.GenerateID(), function()
-	Meiware.TargetFinder()
-end)
-
-hook.Add("Move", Meiware.GenerateID(), function(ply, mv)
+hook.Add("Move", GenerateID(), function(ply, mv)
 	if !IsFirstTimePredicted() then return end
 
-	Meiware.curtime = CurTime() + engine.TickInterval()
+	curtime = CurTime() + engine.TickInterval()
 end)
 
-hook.Add("OnContextMenuOpen", Meiware.GenerateID(), function()
-	Meiware.menu = true
+hook.Add("OnContextMenuOpen", GenerateID(), function()
+	menu = true
 end)
 
-hook.Add("OnContextMenuClose", Meiware.GenerateID(), function()
-	Meiware.menu = false
+hook.Add("OnContextMenuClose", GenerateID(), function()
+	menu = false
 end)
 
 function GAMEMODE:PostRender()
-	Meiware["PostRender"]()
+	PostRender()
 
 	cam.Start3D()
-	Meiware.Wallhack() //no depth, TODO: fix depth
+	Wallhack() //no depth, TODO: fix depth
 	cam.End3D()
 
 	cam.Start2D()
-	Meiware.ESP()
-	Meiware.Crosshair()
-	Meiware.Menu()
+	ESP()
+	Crosshair()
+	Menu()
 	cam.End2D()
 end
 
-print("[Meiware] menu key: " .. input.LookupBinding("+menu_context", true) .. ", aim/trigger key: " .. input.GetKeyName(Meiware.aimtrig_key))
+print("[Meiware] menu key: " .. input.LookupBinding("+menu_context", true) .. ", aim/trigger key: " .. input.GetKeyName(aimtrig_key))
