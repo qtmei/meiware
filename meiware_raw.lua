@@ -24,6 +24,7 @@ local movement = {
 	autohop = {"auto hop", true},
 	autostrafe = {"auto strafe", true},
 	autohealthkit = {"auto health kit", false},
+	autosuitbattery = {"auto suit battery", false},
 	autohealthball = {"auto health ball", false}
 }
 
@@ -59,8 +60,8 @@ local false_vec = LocalPlayer():EyePos()
 
 local curtime = 0
 
-local autohealth_ents = 0
-local autohealth_delay = 0
+local spawned_ents = 0
+local spawn_delay = 0
 
 local PostRender = GAMEMODE.PostRender
 
@@ -181,6 +182,7 @@ local function Aimbot(cmd)
 
 	if IsValidTarget(target) and CanFire() and !input.IsMouseDown(MOUSE_LEFT) and (aim.ragemode[2] or (input.IsButtonDown(aimtrig_key) and target.fov <= aim_fov)) then
 		cmd:SetViewAngles(target.ang)
+		cmd:AddKey(IN_ATTACK2)
 		cmd:AddKey(IN_ATTACK)
 	else
 		cmd:SetViewAngles(false_ang)
@@ -300,36 +302,52 @@ local function Autohop(cmd)
 end
 
 local function HealthHack(cmd)
-	if autohealth_ents > 0 then
+	if !localplayer:Alive() or CanFire() then return end
+
+	if spawned_ents > 0 then
 		RunConsoleCommand("gmod_cleanup", "sents")
 
-		autohealth_ents = 0
+		spawned_ents = 0
 	end
 
 	if movement.autohealthkit[2] then
-		if localplayer:Alive() and localplayer:Health() < 100 then
+		if localplayer:Health() < 100 then
 			cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
 			cmd:AddKey(IN_USE)
 
-			if cmd:GetViewAngles().p == 89 and CurTime() > autohealth_delay then
+			if cmd:GetViewAngles().p == 89 and CurTime() > spawn_delay then
 				RunConsoleCommand("gm_spawnsent", "item_healthkit")
 
-				autohealth_ents = autohealth_ents + 1
-				autohealth_delay = CurTime() + 0.25
+				spawned_ents = spawned_ents + 1
+				spawn_delay = CurTime() + 0.25
+			end
+		end
+	end
+
+	if movement.autosuitbattery[2] then
+		if localplayer:Armor() < 100 then
+			cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
+			cmd:AddKey(IN_USE)
+
+			if cmd:GetViewAngles().p == 89 and CurTime() > spawn_delay then
+				RunConsoleCommand("gm_spawnsent", "item_battery")
+
+				spawned_ents = spawned_ents + 1
+				spawn_delay = CurTime() + 0.25
 			end
 		end
 	end
 
 	if movement.autohealthball[2] then
-		if localplayer:Alive() and localplayer:Health() < 1000 and localplayer:Health() >= 100 then
+		if localplayer:Health() < 1000 and localplayer:Health() >= 100 then
 			cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
 			cmd:AddKey(IN_USE)
 
-			if cmd:GetViewAngles().p == 89 and CurTime() > autohealth_delay then
+			if cmd:GetViewAngles().p == 89 and CurTime() > spawn_delay then
 				RunConsoleCommand("gm_spawnsent", "sent_ball")
 
-				autohealth_ents = autohealth_ents + 1
-				autohealth_delay = CurTime() + 0.25
+				spawned_ents = spawned_ents + 1
+				spawn_delay = CurTime() + 0.25
 			end
 		end
 	end
