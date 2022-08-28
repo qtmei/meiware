@@ -182,7 +182,6 @@ local function Aimbot(cmd)
 
 	if IsValidTarget(target) and CanFire() and !input.IsMouseDown(MOUSE_LEFT) and (aim.ragemode[2] or (input.IsButtonDown(aimtrig_key) and target.fov <= aim_fov)) then
 		cmd:SetViewAngles(target.ang)
-		cmd:AddKey(IN_ATTACK2)
 		cmd:AddKey(IN_ATTACK)
 	else
 		cmd:SetViewAngles(false_ang)
