@@ -1,4 +1,4 @@
-# Meiware - lua multi hack for Garry's Mod
+# Meiware - hack for Garry's Mod
 
 a little project i've been working on & off for a couple years now. code is optimized and easy to read.
 <br/><br/>
