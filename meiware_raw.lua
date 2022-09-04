@@ -65,9 +65,9 @@ local spawn_delay = 0
 
 local PostRender = GAMEMODE.PostRender
 
-local function GenerateID()
-	math.randomseed(os.time())
+math.randomseed(os.time())
 
+local function GenerateID()
 	local ID = {}
 
 	for i = 0, 16 - 1, 1 do
@@ -117,8 +117,6 @@ local function HitboxPriority(tbl)
 end
 
 local function MultiPoint(ent)
-	math.randomseed(os.time())
-
 	local visible_vecs = {}
 	local hitbox_sets = ent:GetHitboxSetCount()
 
