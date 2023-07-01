@@ -63,7 +63,7 @@ local curtime = 0
 local spawned_ents = 0
 local spawn_delay = 0
 
-local PostRender = GAMEMODE.PostRender
+local PostRender_old = GAMEMODE.PostRender
 
 math.randomseed(os.time())
 
@@ -629,7 +629,7 @@ hook.Add("OnContextMenuClose", GenerateID(), function()
 end)
 
 function GAMEMODE:PostRender()
-	PostRender()
+	PostRender_old()
 
 	cam.Start3D()
 	Wallhack() //no depth, TODO: fix depth
