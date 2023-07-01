@@ -95,7 +95,7 @@ local function IsValidTarget(ent)
 	if !IsValid(ent) then return false end
 	if ent:IsEffectActive(EF_NODRAW) or ent:GetRenderMode() == RENDERMODE_NONE or ent:GetRenderMode() == RENDERMODE_TRANSCOLOR or ent:GetColor().a == 0 then return false end
 
-	return ent != localplayer and ent:IsPlayer() and ent:Alive() and ent:Team() != TEAM_SPECTATOR and !ent:IsDormant() and (aim.ignoreteam[2] or ent:Team() != localplayer:Team())
+	return ent != localplayer and ent:Alive() and ent:Team() != TEAM_SPECTATOR and !ent:IsDormant() and (aim.ignoreteam[2] or ent:Team() != localplayer:Team())
 end
 
 local function IsEntVisibleFromVec(ent, vec)
