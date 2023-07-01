@@ -1,6 +1,6 @@
 # Meiware
 hack for Garry's mod<br/><br/>
-features: optimized code, anti screengrab, aimbot(silent), hitbox multipoint, triggerbot(can be standalone or with aimbot), autoreload, wallhack with chams, ESP, crosshair, freecam, autohop, autostrafe(silent), and menu<br/><br/>
+features: optimized code, anti screengrab, anti anti-cheat, aimbot(silent), hitbox multipoint, triggerbot(can be standalone or with aimbot), autoreload, wallhack with chams, ESP, crosshair, freecam, autohop, autostrafe(silent), and menu<br/><br/>
 how to use:<br/>
 download meiware.lua and detours.lua<br/>
 add detours.lua to your load before autorun<br/>
