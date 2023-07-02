@@ -1,7 +1,7 @@
 /*
 	[Header]
 */
-local build_info = "2022-08-27 @ 19:16 UTC"
+local build_info = "2023-07-02 @ 17:20 UTC"
 
 local color = Color(0, 255, 0)
 local aimtrig_key = MOUSE_5
