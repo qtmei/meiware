@@ -1,10 +1,13 @@
+local _G = table.Copy(_G) //globals_old
+local _R = debug.getregistry() //registry_old
+
 /*
 	[Header]
 */
 local build_info = "2023-07-02 @ 17:20 UTC"
 
-local color = Color(0, 255, 0)
-local aimtrig_key = MOUSE_5
+local color = _G.Color(0, 255, 0)
+local aimtrig_key = _G.MOUSE_5
 local aim_fov = 6
 
 local aim = {
@@ -46,17 +49,17 @@ local HITBOX_R_TOE = 14
 local HITBOX_PELVIS = 15
 local HITBOX_SPINE = 16
 
-local chars = string.ToTable("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+local chars = _G.string.ToTable("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 local menu = false
 local menu_activetab = "aim"
 local menu_delay = 0
 
-local localplayer = LocalPlayer()
+local localplayer = _G.LocalPlayer()
 local target = nil
 
-local false_ang = LocalPlayer():EyeAngles()
-local false_vec = LocalPlayer():EyePos()
+local false_ang = _R.Entity.EyeAngles(localplayer)
+local false_vec = _R.Entity.EyePos(localplayer)
 
 local curtime = 0
 
@@ -65,20 +68,20 @@ local spawn_delay = 0
 
 local PostRender_old = GAMEMODE.PostRender
 
-math.randomseed(os.time())
+_G.math.randomseed(_G.os.time())
 
 local function GenerateID()
 	local ID = {}
 
 	for i = 0, 16 - 1, 1 do
-		ID[i] = chars[math.random(1, table.Count(chars))]
+		ID[i] = chars[_G.math.random(1, _G.table.Count(chars))]
 	end
 
-	return table.concat(ID)
+	return _G.table.concat(ID)
 end
 
 local function InvertColor(col)
-	return Color(255 - col.r, 255 - col.g, 255 - col.b)
+	return _G.Color(255 - col.r, 255 - col.g, 255 - col.b)
 end
 
 local function Clamp(ang)
@@ -92,43 +95,43 @@ local function Clamp(ang)
 end
 
 local function IsValidTarget(ent)
-	if !IsValid(ent) then return false end
-	if ent:IsEffectActive(EF_NODRAW) or ent:GetRenderMode() == RENDERMODE_NONE or ent:GetRenderMode() == RENDERMODE_TRANSCOLOR or ent:GetColor().a == 0 then return false end
+	if !_G.IsValid(ent) then return false end
+	if _R.Entity.IsEffectActive(ent, _G.EF_NODRAW) or _R.Entity.GetRenderMode(ent) == _G.RENDERMODE_NONE or _R.Entity.GetRenderMode(ent) == _G.RENDERMODE_TRANSCOLOR or _R.Entity.GetColor(ent).a == 0 then return false end
 
-	return ent != localplayer and ent:Alive() and ent:Team() != TEAM_SPECTATOR and !ent:IsDormant() and (aim.ignoreteam[2] or ent:Team() != localplayer:Team())
+	return ent != localplayer and _R.Player.Alive(ent) and _R.Player.Team(ent) != _G.TEAM_SPECTATOR and !_R.Entity.IsDormant(ent) and (aim.ignoreteam[2] or _R.Player.Team(ent) != _R.Player.Team(localplayer))
 end
 
 local function IsEntVisibleFromVec(ent, vec)
-	local trace = util.TraceLine({mask = MASK_SHOT, ignoreworld = false, filter = localplayer, start = localplayer:EyePos(), endpos = vec})
+	local trace = _G.util.TraceLine({mask = _G.MASK_SHOT, ignoreworld = false, filter = localplayer, start = _R.Entity.EyePos(localplayer), endpos = vec})
 
 	return trace.Entity == ent
 end
 
 local function CanFire()
-	local wep = localplayer:GetActiveWeapon()
+	local wep = _R.Player.GetActiveWeapon(localplayer)
 
-	if !IsValid(wep) then return false end
+	if !_G.IsValid(wep) then return false end
 
-	return wep:Clip1() > 0 and wep:GetActivity() != ACT_RELOAD and wep:GetNextPrimaryFire() < curtime
+	return _R.Weapon.Clip1(wep) > 0 and _R.Weapon.GetActivity(wep) != _G.ACT_RELOAD and _R.Weapon.GetNextPrimaryFire(wep) < curtime
 end
 
 local function HitboxPriority(tbl)
-	return tbl[HITBOX_HEAD] or tbl[HITBOX_SPINE] or tbl[HITBOX_PELVIS] or tbl[HITBOX_L_THIGH] or tbl[HITBOX_R_THIGH] or tbl[HITBOX_L_ARM] or tbl[HITBOX_R_ARM] or tbl[HITBOX_L_CALF] or tbl[HITBOX_R_CALF] or tbl[HITBOX_L_FOREARM] or tbl[HITBOX_R_FOREARM] or tbl[HITBOX_L_FOOT] or tbl[HITBOX_R_FOOT] or tbl[HITBOX_L_HAND] or tbl[HITBOX_R_HAND] or tbl[HITBOX_L_TOE] or tbl[HITBOX_R_TOE] or table.Random(tbl) or nil
+	return tbl[HITBOX_HEAD] or tbl[HITBOX_SPINE] or tbl[HITBOX_PELVIS] or tbl[HITBOX_L_THIGH] or tbl[HITBOX_R_THIGH] or tbl[HITBOX_L_ARM] or tbl[HITBOX_R_ARM] or tbl[HITBOX_L_CALF] or tbl[HITBOX_R_CALF] or tbl[HITBOX_L_FOREARM] or tbl[HITBOX_R_FOREARM] or tbl[HITBOX_L_FOOT] or tbl[HITBOX_R_FOOT] or tbl[HITBOX_L_HAND] or tbl[HITBOX_R_HAND] or tbl[HITBOX_L_TOE] or tbl[HITBOX_R_TOE] or _G.table.Random(tbl) or nil
 end
 
 local function MultiPoint(ent)
 	local visible_vecs = {}
-	local hitbox_sets = ent:GetHitboxSetCount()
+	local hitbox_sets = _R.Entity.GetHitboxSetCount(ent)
 
 	for hitbox_set = 0, hitbox_sets - 1 do
-		local hitboxes = ent:GetHitBoxCount(hitbox_set)
+		local hitboxes = _R.Entity.GetHitBoxCount(ent, hitbox_set)
 
 		for hitbox = 0, hitboxes - 1 do
-			local vec, ang = ent:GetBonePosition(ent:GetHitBoxBone(hitbox, hitbox_set))
-			local min, max = ent:GetHitBoxBounds(hitbox, hitbox_set)
-			local offset = Vector(math.Rand(min.x, max.x), math.Rand(min.y, max.y), math.Rand(min.z, max.z))
+			local vec, ang = _R.Entity.GetBonePosition(ent, _R.Entity.GetHitBoxBone(ent, hitbox, hitbox_set))
+			local min, max = _R.Entity.GetHitBoxBounds(ent, hitbox, hitbox_set)
+			local offset = _G.Vector(_G.math.Rand(min.x, max.x), _G.math.Rand(min.y, max.y), _G.math.Rand(min.z, max.z))
 
-			offset:Rotate(ang)
+			_R.Vector.Rotate(offset, ang)
 
 			vec = vec + offset
 
@@ -150,18 +153,18 @@ local function TargetFinder()
 	local closest_target = {}
 	closest_target.fov = 360
 
-	for k, v in pairs(player.GetAll()) do
+	for k, v in _G.pairs(_G.player.GetAll()) do
 		if IsValidTarget(v) then
-			local ang = (v:WorldSpaceCenter() - localplayer:EyePos()):Angle()
-			local fov = math.abs(math.NormalizeAngle(false_ang.y - ang.y)) + math.abs(math.NormalizeAngle(false_ang.p - ang.p))
+			local ang = _R.Vector.Angle(_R.Entity.WorldSpaceCenter(v) - _R.Entity.EyePos(localplayer))
+			local fov = _G.math.abs(_G.math.NormalizeAngle(false_ang.y - ang.y)) + _G.math.abs(_G.math.NormalizeAngle(false_ang.p - ang.p))
 
 			if fov < closest_target.fov then
 				local vec = MultiPoint(v)
 
 				if vec then
-					local ang = (vec - localplayer:EyePos()):Angle()
+					local ang = _R.Vector.Angle(vec - _R.Entity.EyePos(localplayer))
 
-					ang:Normalize()
+					_R.Angle.Normalize(ang)
 					Clamp(ang)
 
 					closest_target = v
@@ -178,96 +181,88 @@ end
 local function Aimbot(cmd)
 	if !aim.aimbot[2] then return end
 
-	if IsValidTarget(target) and CanFire() and !input.IsMouseDown(MOUSE_LEFT) and (aim.ragemode[2] or (input.IsButtonDown(aimtrig_key) and target.fov <= aim_fov)) then
-		cmd:SetViewAngles(target.ang)
-		cmd:AddKey(IN_ATTACK)
+	if IsValidTarget(target) and CanFire() and !_G.input.IsMouseDown(_G.MOUSE_LEFT) and (aim.ragemode[2] or (_G.input.IsButtonDown(aimtrig_key) and target.fov <= aim_fov)) then
+		_R.CUserCmd.SetViewAngles(cmd, target.ang)
+		_R.CUserCmd.AddKey(cmd, _G.IN_ATTACK)
 	else
-		cmd:SetViewAngles(false_ang)
+		_R.CUserCmd.SetViewAngles(cmd, false_ang)
 	end
 end
 
 local function Triggerbot(cmd)
 	if !aim.triggerbot[2] then return end
 
-	local trace = util.TraceLine({mask = MASK_SHOT, start = localplayer:EyePos(), endpos = localplayer:EyePos() + cmd:GetViewAngles():Forward() * 32768, filter = localplayer})
+	local trace = _G.util.TraceLine({mask = _G.MASK_SHOT, start = _R.Entity.EyePos(localplayer), endpos = _R.Entity.EyePos(localplayer) + _R.Angle.Forward(_R.CUserCmd.GetViewAngles(cmd)) * 32768, filter = localplayer})
 
-	if IsValidTarget(trace.Entity) and CanFire() and (aim.ragemode[2] or input.IsButtonDown(aimtrig_key)) then
-		cmd:AddKey(IN_ATTACK)
+	if IsValidTarget(trace.Entity) and CanFire() and (aim.ragemode[2] or _G.input.IsButtonDown(aimtrig_key)) then
+		_R.CUserCmd.AddKey(cmd, IN_ATTACK)
 	end
 end
 
 local function MovementFix(cmd)
 	if aim.aimbot[2] then
-		local temp_false_ang = false_ang + Angle(cmd:GetMouseY() * GetConVar("m_pitch"):GetFloat(), -cmd:GetMouseX() * GetConVar("m_yaw"):GetFloat(), 0)
+		local temp_false_ang = false_ang + _G.Angle(_R.CUserCmd.GetMouseY(cmd) * _R.ConVar.GetFloat(_G.GetConVar("m_pitch")), -_R.CUserCmd.GetMouseX(cmd) * _R.ConVar.GetFloat(_G.GetConVar("m_yaw")), 0)
 
-		temp_false_ang:Normalize()
+		_R.Angle.Normalize(temp_false_ang)
 		Clamp(temp_false_ang)
 
 		false_ang = temp_false_ang
 
-		local vec = Vector(cmd:GetForwardMove(), cmd:GetSideMove(), 0)
-		local vel = math.sqrt(vec.x * vec.x + vec.y * vec.y)
-		local mang = vec:Angle()
-		local yaw = cmd:GetViewAngles().y - false_ang.y + mang.y
+		local vec = _G.Vector(_R.CUserCmd.GetForwardMove(cmd), _R.CUserCmd.GetSideMove(cmd), 0)
+		local vel = _G.math.sqrt(vec.x * vec.x + vec.y * vec.y)
+		local mang = _R.Vector.Angle(vec)
+		local yaw = _R.CUserCmd.GetViewAngles(cmd).y - false_ang.y + mang.y
 
-		if ((cmd:GetViewAngles().p + 90) % 360) > 180 then
+		if ((_R.CUserCmd.GetViewAngles(cmd).p + 90) % 360) > 180 then
 			yaw = 180 - yaw
 		end
 
 		yaw = ((yaw + 180) % 360) - 180
 
-		cmd:SetForwardMove(math.cos(math.rad(yaw)) * vel)
-		cmd:SetSideMove(math.sin(math.rad(yaw)) * vel)
+		_R.CUserCmd.SetForwardMove(cmd, _G.math.cos(_G.math.rad(yaw)) * vel)
+		_R.CUserCmd.SetSideMove(cmd, _G.math.sin(_G.math.rad(yaw)) * vel)
 	else
-		false_ang = localplayer:EyeAngles()
+		false_ang = _R.Entity.EyeAngles(localplayer)
 	end
 end
 
 local function Freecam(cmd)
 	if visuals.freecam[2] then
-		cmd:ClearMovement()
+		_R.CUserCmd.ClearMovement(cmd)
 
 		local speed = 4
 
-		if cmd:KeyDown(IN_SPEED) then
+		if _R.CUserCmd.KeyDown(cmd, _G.IN_SPEED) then
 			speed = speed * 2
 		end
 
-		if cmd:KeyDown(IN_FORWARD) then
-			false_vec = false_vec + false_ang:Forward() * speed
+		if _R.CUserCmd.KeyDown(cmd, _G.IN_FORWARD) then
+			false_vec = false_vec + _R.Angle.Forward(false_ang) * speed
 		end
 
-		if cmd:KeyDown(IN_BACK) then
-			false_vec = false_vec + false_ang:Forward() * -speed
+		if _R.CUserCmd.KeyDown(cmd, _G.IN_BACK) then
+			false_vec = false_vec + _R.Angle.Forward(false_ang) * -speed
 		end
 
-		if cmd:KeyDown(IN_MOVELEFT) then
-			false_vec = false_vec + false_ang:Right() * -speed
+		if _R.CUserCmd.KeyDown(cmd, _G.IN_MOVELEFT) then
+			false_vec = false_vec + _R.Angle.Right(false_ang) * -speed
 		end
 
-		if cmd:KeyDown(IN_MOVERIGHT) then
-			false_vec = false_vec + false_ang:Right() * speed
-		end
-
-		if cmd:KeyDown(IN_JUMP) then
-			false_vec = false_vec + Angle(0, 0, 0):Up() * speed
-		end
-
-		if cmd:KeyDown(IN_DUCK) then
-			false_vec = false_vec + Angle(0, 0, 0):Up() * -speed
+		if _R.CUserCmd.KeyDown(cmd, _G.IN_MOVERIGHT) then
+			false_vec = false_vec + _R.Angle.Right(false_ang) * speed
 		end
 	else
-		false_vec = localplayer:EyePos()
+		false_vec = _R.Entity.EyePos(localplayer)
 	end
 end
 
 local function AutoReload(cmd)
-	local wep = localplayer:GetActiveWeapon()
+	local wep = _R.Player.GetActiveWeapon(localplayer)
 
-	if aim.autoreload[2] and IsValid(wep) then
+	if aim.autoreload[2] and _G.IsValid(wep) then
 		if wep.Primary then
-			if wep:Clip1() == 0 and wep:GetMaxClip1() > 0 and localplayer:GetAmmoCount(wep:GetPrimaryAmmoType()) > 0 then
-				cmd:AddKey(IN_RELOAD)
+			if _R.Weapon.Clip1(wep) == 0 and _R.Weapon.GetMaxClip1(wep) > 0 and _R.Player.GetAmmoCount(localplayer, _R.Weapon.GetPrimaryAmmoType(wep)) > 0 then
+				_R.CUserCmd.AddKey(cmd, _G.IN_RELOAD)
 			end
 		end
 	end
@@ -279,13 +274,13 @@ end
 local function Autostrafe(cmd)
 	if !movement.autostrafe[2] then return end
 
-	if !localplayer:IsOnGround() and localplayer:GetMoveType() != MOVETYPE_LADDER and localplayer:GetMoveType() != MOVETYPE_NOCLIP then
-		cmd:SetForwardMove(5850 / localplayer:GetVelocity():Length2D())
+	if !_R.Entity.IsOnGround(localplayer) and _R.Entity.GetMoveType(localplayer) != _G.MOVETYPE_LADDER and _R.Entity.GetMoveType(localplayer) != _G.MOVETYPE_NOCLIP then
+		_R.CUserCmd.SetForwardMove(cmd, 5850 / _R.Vector.Length2D(_R.Entity.GetVelocity(localplayer)))
 
-		if cmd:CommandNumber() % 2 == 0 then
-			cmd:SetSideMove(-localplayer:GetVelocity():Length2D())
-		elseif cmd:CommandNumber() % 2 != 0 then
-			cmd:SetSideMove(localplayer:GetVelocity():Length2D())
+		if _R.CUserCmd.CommandNumber(cmd) % 2 == 0 then
+			_R.CUserCmd.SetSideMove(cmd, -_R.Vector.Length2D(_R.Entity.GetVelocity(localplayer)))
+		elseif _R.CUserCmd.CommandNumber(cmd) % 2 != 0 then
+			_R.CUserCmd.SetSideMove(cmd, _R.Vector.Length2D(_R.Entity.GetVelocity(localplayer)))
 		end
 	end
 end
@@ -293,58 +288,58 @@ end
 local function Autohop(cmd)
 	if !movement.autohop[2] then return end
 
-	if cmd:KeyDown(IN_JUMP) and !localplayer:IsOnGround() and localplayer:GetMoveType() != MOVETYPE_LADDER and localplayer:GetMoveType() != MOVETYPE_NOCLIP then
-		cmd:RemoveKey(IN_JUMP)
+	if _R.CUserCmd.KeyDown(cmd, _G.IN_JUMP) and !_R.Entity.IsOnGround(localplayer) and _R.Entity.GetMoveType(localplayer) != _G.MOVETYPE_LADDER and _R.Entity.GetMoveType(localplayer) != _G.MOVETYPE_NOCLIP then
+		_R.CUserCmd.RemoveKey(cmd, _G.IN_JUMP)
 	end
 end
 
 local function HealthHack(cmd)
-	if !localplayer:Alive() or CanFire() then return end
+	if !_R.Player.Alive(localplayer) or CanFire() then return end
 
 	if spawned_ents > 0 then
-		RunConsoleCommand("gmod_cleanup", "sents")
+		_G.RunConsoleCommand("gmod_cleanup", "sents")
 
 		spawned_ents = 0
 	end
 
 	if movement.autohealthkit[2] then
-		if localplayer:Health() < 100 then
-			cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
-			cmd:AddKey(IN_USE)
+		if _R.Entity.Health(localplayer) < 100 then
+			_R.CUserCmd.SetViewAngles(cmd, _G.Angle(89, _R.CUserCmd.GetViewAngles(cmd).y, 0))
+			_R.CUserCmd.AddKey(cmd, _G.IN_USE)
 
-			if cmd:GetViewAngles().p == 89 and CurTime() > spawn_delay then
-				RunConsoleCommand("gm_spawnsent", "item_healthkit")
+			if _R.CUserCmd.GetViewAngles(cmd).p == 89 and _G.CurTime() > spawn_delay then
+				_G.RunConsoleCommand("gm_spawnsent", "item_healthkit")
 
 				spawned_ents = spawned_ents + 1
-				spawn_delay = CurTime() + 0.25
+				spawn_delay = _G.CurTime() + 0.25
 			end
 		end
 	end
 
 	if movement.autosuitbattery[2] then
-		if localplayer:Armor() < 100 then
-			cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
-			cmd:AddKey(IN_USE)
+		if _R.Player.Armor(localplayer) < 100 then
+			_R.CUserCmd.SetViewAngles(cmd, _G.Angle(89, _R.CUserCmd.GetViewAngles(cmd).y, 0))
+			_R.CUserCmd.AddKey(cmd, _G.IN_USE)
 
-			if cmd:GetViewAngles().p == 89 and CurTime() > spawn_delay then
-				RunConsoleCommand("gm_spawnsent", "item_battery")
+			if _R.CUserCmd.GetViewAngles(cmd).p == 89 and _G.CurTime() > spawn_delay then
+				_G.RunConsoleCommand("gm_spawnsent", "item_battery")
 
 				spawned_ents = spawned_ents + 1
-				spawn_delay = CurTime() + 0.25
+				spawn_delay = _G.CurTime() + 0.25
 			end
 		end
 	end
 
 	if movement.autohealthball[2] then
-		if localplayer:Health() < 1000 and localplayer:Health() >= 100 then
-			cmd:SetViewAngles(Angle(89, cmd:GetViewAngles().y, 0))
-			cmd:AddKey(IN_USE)
+		if _R.Entity.Health(localplayer) < 1000 and _R.Entity.Health(localplayer) >= 100 then
+			_R.CUserCmd.SetViewAngles(cmd, _G.Angle(89, _R.CUserCmd.GetViewAngles(cmd).y, 0))
+			_R.CUserCmd.AddKey(cmd, _G.IN_USE)
 
-			if cmd:GetViewAngles().p == 89 and CurTime() > spawn_delay then
-				RunConsoleCommand("gm_spawnsent", "sent_ball")
+			if _R.CUserCmd.GetViewAngles(cmd).p == 89 and _G.CurTime() > spawn_delay then
+				_G.RunConsoleCommand("gm_spawnsent", "sent_ball")
 
 				spawned_ents = spawned_ents + 1
-				spawn_delay = CurTime() + 0.25
+				spawn_delay = _G.CurTime() + 0.25
 			end
 		end
 	end
@@ -356,93 +351,93 @@ end
 local function Wallhack()
 	if !visuals.wallhack[2] then return end
 
-	render.SetStencilWriteMask(0xFF)
-	render.SetStencilTestMask(0xFF)
-	render.SetStencilReferenceValue(0)
-	render.SetStencilCompareFunction(STENCIL_ALWAYS)
-	render.SetStencilPassOperation(STENCIL_KEEP)
-	render.SetStencilFailOperation(STENCIL_KEEP)
-	render.SetStencilZFailOperation(STENCIL_KEEP)
-	render.ClearStencil()
+	_G.render.SetStencilWriteMask(0xFF)
+	_G.render.SetStencilTestMask(0xFF)
+	_G.render.SetStencilReferenceValue(0)
+	_G.render.SetStencilCompareFunction(_G.STENCIL_ALWAYS)
+	_G.render.SetStencilPassOperation(_G.STENCIL_KEEP)
+	_G.render.SetStencilFailOperation(_G.STENCIL_KEEP)
+	_G.render.SetStencilZFailOperation(_G.STENCIL_KEEP)
+	_G.render.ClearStencil()
 
-	render.SetStencilEnable(true)
-	render.SetStencilReferenceValue(1)
-	render.SetStencilCompareFunction(STENCIL_ALWAYS)
-	render.SetStencilZFailOperation(STENCIL_REPLACE)
+	_G.render.SetStencilEnable(true)
+	_G.render.SetStencilReferenceValue(1)
+	_G.render.SetStencilCompareFunction(_G.STENCIL_ALWAYS)
+	_G.render.SetStencilZFailOperation(_G.STENCIL_REPLACE)
 
-	for k, v in pairs(player.GetAll()) do
+	for k, v in _G.pairs(_G.player.GetAll()) do
 		if IsValidTarget(v) then
-			v:DrawModel()
+			_R.Entity.DrawModel(v)
 
-			local wep = v:GetActiveWeapon()
+			local wep = _R.Player.GetActiveWeapon(v)
 
-			if IsValid(wep) then
-				wep:DrawModel()
+			if _G.IsValid(wep) then
+				_R.Entity.DrawModel(wep)
 			end
 		end
 	end
 
 	local col = InvertColor(color)
 
-	render.SetStencilCompareFunction(STENCIL_EQUAL)
-	render.ClearBuffersObeyStencil(col.r, col.g, col.b, 255, false)
-	render.SetStencilEnable(false)
+	_G.render.SetStencilCompareFunction(_G.STENCIL_EQUAL)
+	_G.render.ClearBuffersObeyStencil(col.r, col.g, col.b, 255, false)
+	_G.render.SetStencilEnable(false)
 
-	render.SetStencilWriteMask(0xFF)
-	render.SetStencilTestMask(0xFF)
-	render.SetStencilReferenceValue(0)
-	render.SetStencilCompareFunction(STENCIL_ALWAYS)
-	render.SetStencilPassOperation(STENCIL_KEEP)
-	render.SetStencilFailOperation(STENCIL_KEEP)
-	render.SetStencilZFailOperation(STENCIL_KEEP)
-	render.ClearStencil()
+	_G.render.SetStencilWriteMask(0xFF)
+	_G.render.SetStencilTestMask(0xFF)
+	_G.render.SetStencilReferenceValue(0)
+	_G.render.SetStencilCompareFunction(_G.STENCIL_ALWAYS)
+	_G.render.SetStencilPassOperation(_G.STENCIL_KEEP)
+	_G.render.SetStencilFailOperation(_G.STENCIL_KEEP)
+	_G.render.SetStencilZFailOperation(_G.STENCIL_KEEP)
+	_G.render.ClearStencil()
 
-	render.SetStencilEnable(true)
-	render.SetStencilCompareFunction(STENCIL_ALWAYS)
-	render.SetStencilPassOperation(STENCIL_REPLACE)
-	render.SetStencilZFailOperation(STENCILOPERATION_INCR)
-	render.SetStencilFailOperation(STENCIL_KEEP)
-	render.SetStencilReferenceValue(2)
-	render.SetStencilWriteMask(2)
+	_G.render.SetStencilEnable(true)
+	_G.render.SetStencilCompareFunction(_G.STENCIL_ALWAYS)
+	_G.render.SetStencilPassOperation(_G.STENCIL_REPLACE)
+	_G.render.SetStencilZFailOperation(_G.STENCILOPERATION_INCR)
+	_G.render.SetStencilFailOperation(_G.STENCIL_KEEP)
+	_G.render.SetStencilReferenceValue(2)
+	_G.render.SetStencilWriteMask(2)
 
-	for k, v in pairs(player.GetAll()) do
+	for k, v in _G.pairs(_G.player.GetAll()) do
 		if IsValidTarget(v) then
-			v:DrawModel()
+			_R.Entity.DrawModel(v)
 
-			local wep = v:GetActiveWeapon()
+			local wep = _R.Player.GetActiveWeapon(v)
 
-			if IsValid(wep) then
-				wep:DrawModel()
+			if _G.IsValid(wep) then
+				_R.Entity.DrawModel(wep)
 			end
 		end
 	end
 
-	render.SetStencilCompareFunction(STENCIL_EQUAL)
-	render.ClearBuffersObeyStencil(color.r, color.g, color.b, 255, false)
-	render.SetStencilEnable(false)
+	_G.render.SetStencilCompareFunction(_G.STENCIL_EQUAL)
+	_G.render.ClearBuffersObeyStencil(color.r, color.g, color.b, 255, false)
+	_G.render.SetStencilEnable(false)
 end
 
 local function ESP()
 	if !visuals.esp[2] then return end
 
-	surface.SetFont("Default")
+	_G.surface.SetFont("Default")
 
-	for k, v in pairs(player.GetAll()) do
+	for k, v in _G.pairs(_G.player.GetAll()) do
 		if IsValidTarget(v) then
-			local length = 6 + select(1, surface.GetTextSize(v:Name())) + 6
-			local height = 6 + select(2, surface.GetTextSize(v:Name())) + 6
-			local x = v:GetPos():ToScreen().x - (length / 2)
-			local y = (v:EyePos() + Vector(0, 0, 8)):ToScreen().y - height
+			local length = 6 + _G.select(1, _G.surface.GetTextSize(_R.Player.Name(v))) + 6
+			local height = 6 + _G.select(2, _G.surface.GetTextSize(_R.Player.Name(v))) + 6
+			local x = _R.Vector.ToScreen(_R.Entity.GetPos(v)).x - (length / 2)
+			local y = _R.Vector.ToScreen(_R.Entity.EyePos(v) + _G.Vector(0, 0, 8)).y - height
 
-			surface.SetDrawColor(36, 36, 36, 225)
-			surface.DrawRect(x, y, length, height)
+			_G.surface.SetDrawColor(36, 36, 36, 225)
+			_G.surface.DrawRect(x, y, length, height)
 
-			surface.SetDrawColor(color.r, color.g, color.b)
-			surface.DrawOutlinedRect(x, y, length, height, 1)
+			_G.surface.SetDrawColor(color.r, color.g, color.b)
+			_G.surface.DrawOutlinedRect(x, y, length, height, 1)
 
-			surface.SetTextColor(color.r, color.g, color.b)
-			surface.SetTextPos(x + 6, y + 6)
-			surface.DrawText(v:Name())
+			_G.surface.SetTextColor(color.r, color.g, color.b)
+			_G.surface.SetTextPos(x + 6, y + 6)
+			_G.surface.DrawText(_R.Player.Name(v))
 		end
 	end
 end
@@ -452,9 +447,9 @@ local function Crosshair()
 
 	local xhair_length = 16
 	local xhair_thickness = 2
-	surface.SetDrawColor(color.r, color.g, color.b)
-	surface.DrawRect((ScrW() / 2) - (xhair_length / 2), (ScrH() / 2) - (xhair_thickness / 2), xhair_length, xhair_thickness)
-	surface.DrawRect((ScrW() / 2) - (xhair_thickness / 2), (ScrH() / 2) - (xhair_length / 2), xhair_thickness, xhair_length)
+	_G.surface.SetDrawColor(color.r, color.g, color.b)
+	_G.surface.DrawRect((_G.ScrW() / 2) - (xhair_length / 2), (_G.ScrH() / 2) - (xhair_thickness / 2), xhair_length, xhair_thickness)
+	_G.surface.DrawRect((_G.ScrW() / 2) - (xhair_thickness / 2), (_G.ScrH() / 2) - (xhair_length / 2), xhair_thickness, xhair_length)
 end
 
 /*
@@ -463,29 +458,29 @@ end
 local function Menu()
 	if !menu then return end
 
-	surface.SetFont("Default")
+	_G.surface.SetFont("Default")
 
-	local mousex, mousey = input.GetCursorPos()
+	local mousex, mousey = _G.input.GetCursorPos()
 	local window_title = "Meiware " .. build_info
-	local window_size = Vector(600, 400, 0)
-	local window_pos = Vector((ScrW() / 2) - (window_size.x / 2), (ScrH() / 2) - (window_size.y / 2), 0)
+	local window_size = _G.Vector(600, 400, 0)
+	local window_pos = _G.Vector((_G.ScrW() / 2) - (window_size.x / 2), (_G.ScrH() / 2) - (window_size.y / 2), 0)
 	local window_index = {
-		["window"] = window_pos.y + 6 + select(2, surface.GetTextSize(window_title)) + 6,
-		["aim"] = window_pos.y + 6 + select(2, surface.GetTextSize(window_title)) + 6 + 6,
-		["visuals"] = window_pos.y + 6 + select(2, surface.GetTextSize(window_title)) + 6 + 6,
-		["movement"] = window_pos.y + 6 + select(2, surface.GetTextSize(window_title)) + 6 + 6
+		["window"] = window_pos.y + 6 + _G.select(2, _G.surface.GetTextSize(window_title)) + 6,
+		["aim"] = window_pos.y + 6 + _G.select(2, _G.surface.GetTextSize(window_title)) + 6 + 6,
+		["visuals"] = window_pos.y + 6 + _G.select(2, _G.surface.GetTextSize(window_title)) + 6 + 6,
+		["movement"] = window_pos.y + 6 + _G.select(2, _G.surface.GetTextSize(window_title)) + 6 + 6
 	}
 
-	surface.SetDrawColor(Color(36, 36, 36, 225))
-	surface.DrawRect(window_pos.x, window_pos.y, window_size.x, window_size.y)
-	surface.SetDrawColor(color)
-	surface.DrawOutlinedRect(window_pos.x, window_pos.y, window_size.x, window_size.y)
+	_G.surface.SetDrawColor(_G.Color(36, 36, 36, 225))
+	_G.surface.DrawRect(window_pos.x, window_pos.y, window_size.x, window_size.y)
+	_G.surface.SetDrawColor(color)
+	_G.surface.DrawOutlinedRect(window_pos.x, window_pos.y, window_size.x, window_size.y)
 
-	surface.SetTextColor(color.r, color.g, color.b)
-	surface.SetTextPos(window_pos.x + (window_size.x / 2) - (select(1, surface.GetTextSize(window_title)) / 2), window_pos.y + 6)
-	surface.DrawText(window_title)
+	_G.surface.SetTextColor(color.r, color.g, color.b)
+	_G.surface.SetTextPos(window_pos.x + (window_size.x / 2) - (_G.select(1, _G.surface.GetTextSize(window_title)) / 2), window_pos.y + 6)
+	_G.surface.DrawText(window_title)
 
-	surface.DrawOutlinedRect(window_pos.x + 6 + 72 + 6, window_pos.y + 6 + select(2, surface.GetTextSize(window_title)) + 6, window_size.x - 6 - 72 - 6 - 6, window_size.y - 6 - select(2, surface.GetTextSize(window_title)) - 6 - 6)
+	_G.surface.DrawOutlinedRect(window_pos.x + 6 + 72 + 6, window_pos.y + 6 + _G.select(2, _G.surface.GetTextSize(window_title)) + 6, window_size.x - 6 - 72 - 6 - 6, window_size.y - 6 - _G.select(2, _G.surface.GetTextSize(window_title)) - 6 - 6)
 
 	local function AddTab(name)
 		local x = window_pos.x + 6
@@ -493,25 +488,25 @@ local function Menu()
 		local w = 72
 		local h = 48
 
-		surface.SetDrawColor(color)
-		surface.SetTextColor(color.r, color.g, color.b)
+		_G.surface.SetDrawColor(color)
+		_G.surface.SetTextColor(color.r, color.g, color.b)
 
 		if menu_activetab == name then
 			local col = InvertColor(color)
 
-			surface.DrawRect(x, y, w, h)
-			surface.SetTextColor(col.r, col.g, col.b)
+			_G.surface.DrawRect(x, y, w, h)
+			_G.surface.SetTextColor(col.r, col.g, col.b)
 		else
-			surface.DrawOutlinedRect(x, y, w, h)
+			_G.surface.DrawOutlinedRect(x, y, w, h)
 		end
 
-		surface.SetTextPos(x + (w / 2) - (select(1, surface.GetTextSize(name)) / 2), y + (h / 2) - (select(2, surface.GetTextSize(name)) / 2))
-		surface.DrawText(name)
+		_G.surface.SetTextPos(x + (w / 2) - (_G.select(1, _G.surface.GetTextSize(name)) / 2), y + (h / 2) - (_G.select(2, _G.surface.GetTextSize(name)) / 2))
+		_G.surface.DrawText(name)
 
-		if mousex >= x and mousey >= y and mousex <= x + w and mousey <= y + h and input.IsMouseDown(MOUSE_LEFT) and CurTime() > menu_delay then
+		if mousex >= x and mousey >= y and mousex <= x + w and mousey <= y + h and _G.input.IsMouseDown(_G.MOUSE_LEFT) and _G.CurTime() > menu_delay then
 			menu_activetab = name
 
-			menu_delay = CurTime() + 1
+			menu_delay = _G.CurTime() + 1
 		end
 
 		window_index["window"] = window_index["window"] + 48 + 6
@@ -525,24 +520,24 @@ local function Menu()
 		local w = 24
 		local h = 24
 
-		surface.SetTextColor(color.r, color.g, color.b)
-		surface.SetTextPos(x, y + (select(2, surface.GetTextSize(var[1])) / 2))
-		surface.DrawText(var[1])
+		_G.surface.SetTextColor(color.r, color.g, color.b)
+		_G.surface.SetTextPos(x, y + (_G.select(2, _G.surface.GetTextSize(var[1])) / 2))
+		_G.surface.DrawText(var[1])
 
-		x = x + select(1, surface.GetTextSize(var[1])) + 6
+		x = x + _G.select(1, _G.surface.GetTextSize(var[1])) + 6
 
-		surface.SetDrawColor(color)
-		surface.DrawOutlinedRect(x, y, w, h)
+		_G.surface.SetDrawColor(color)
+		_G.surface.DrawOutlinedRect(x, y, w, h)
 
 		if var[2] then
-			surface.SetDrawColor(color)
-			surface.DrawRect(x, y, w, h)
+			_G.surface.SetDrawColor(color)
+			_G.surface.DrawRect(x, y, w, h)
 		end
 
-		if mousex >= x and mousey >= y and mousex <= x + w and mousey <= y + h and input.IsMouseDown(MOUSE_LEFT) and CurTime() > menu_delay then
+		if mousex >= x and mousey >= y and mousex <= x + w and mousey <= y + h and _G.input.IsMouseDown(_G.MOUSE_LEFT) and _G.CurTime() > menu_delay then
 			var[2] = !var[2]
 
-			menu_delay = CurTime() + 0.25
+			menu_delay = _G.CurTime() + 0.25
 		end
 
 		window_index[tab] = window_index[tab] + 24 + 6
@@ -552,15 +547,15 @@ local function Menu()
 	AddTab("visuals")
 	AddTab("movement")
 
-	for k, v in pairs(aim) do
+	for k, v in _G.pairs(aim) do
 		AddToggle(v, "aim")
 	end
 
-	for k, v in pairs(visuals) do
+	for k, v in _G.pairs(visuals) do
 		AddToggle(v, "visuals")
 	end
 
-	for k, v in pairs(movement) do
+	for k, v in _G.pairs(movement) do
 		AddToggle(v, "movement")
 	end
 end
@@ -568,11 +563,11 @@ end
 /*
 	[hooks]
 */
-hook.Add("Think", GenerateID(), function()
+_G.hook.Add("Think", GenerateID(), function()
 	TargetFinder()
 end)
 
-hook.Add("CreateMove", GenerateID(), function(cmd)
+_G.hook.Add("CreateMove", GenerateID(), function(cmd)
 	Aimbot(cmd)
 	MovementFix(cmd)
 	Freecam(cmd)
@@ -583,7 +578,7 @@ hook.Add("CreateMove", GenerateID(), function(cmd)
 	HealthHack(cmd)
 end)
 
-hook.Add("CalcView", GenerateID(), function(ply, origin, angles, fov, znear, zfar)
+_G.hook.Add("CalcView", GenerateID(), function(ply, origin, angles, fov, znear, zfar)
 	local view = {}
 
 	view.origin = origin
@@ -606,7 +601,7 @@ hook.Add("CalcView", GenerateID(), function(ply, origin, angles, fov, znear, zfa
 	return view
 end)
 
-hook.Add("CalcViewModelView", GenerateID(), function(wep, vm, oldPos, oldAng, pos, ang)
+_G.hook.Add("CalcViewModelView", GenerateID(), function(wep, vm, oldPos, oldAng, pos, ang)
 	if aim.aimbot[2] then
 		ang = false_ang
 	end
@@ -614,32 +609,32 @@ hook.Add("CalcViewModelView", GenerateID(), function(wep, vm, oldPos, oldAng, po
 	return pos, ang
 end)
 
-hook.Add("Move", GenerateID(), function(ply, mv)
-	if !IsFirstTimePredicted() then return end
+_G.hook.Add("Move", GenerateID(), function(ply, mv)
+	if !_G.IsFirstTimePredicted() then return end
 
-	curtime = CurTime() + engine.TickInterval()
+	curtime = _G.CurTime() + _G.engine.TickInterval()
 end)
 
-hook.Add("OnContextMenuOpen", GenerateID(), function()
+_G.hook.Add("OnContextMenuOpen", GenerateID(), function()
 	menu = true
 end)
 
-hook.Add("OnContextMenuClose", GenerateID(), function()
+_G.hook.Add("OnContextMenuClose", GenerateID(), function()
 	menu = false
 end)
 
 function GAMEMODE:PostRender()
 	PostRender_old()
 
-	cam.Start3D()
+	_G.cam.Start3D()
 	Wallhack() //no depth, TODO: fix depth
-	cam.End3D()
+	_G.cam.End3D()
 
-	cam.Start2D()
+	_G.cam.Start2D()
 	ESP()
 	Crosshair()
 	Menu()
-	cam.End2D()
+	_G.cam.End2D()
 end
 
-print("[Meiware] menu key: " .. input.LookupBinding("+menu_context", true) .. ", aim/trigger key: " .. input.GetKeyName(aimtrig_key))
+_G.print("[Meiware] menu key: " .. _G.input.LookupBinding("+menu_context", true) .. ", aim/trigger key: " .. _G.input.GetKeyName(aimtrig_key))
